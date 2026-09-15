@@ -18,6 +18,11 @@ uniform vec4 heo_color : source_color = vec4(1.00, 0.45, 0.55, 1.0);
 // Set per chapter -- red for breakup debris, green for a constellation.
 uniform vec4 highlight_color : source_color = vec4(1.00, 0.28, 0.24, 1.0);
 uniform float highlight_size_boost : hint_range(1.0, 3.0) = 1.45;
+// Colour for everything NOT highlighted, when alpha > 0. Used where the
+// un-highlighted state carries meaning of its own rather than being backdrop:
+// in the surveillance chapter, red means no ground site can currently see it,
+// which is exactly as informative as green meaning one can.
+uniform vec4 base_color_override : source_color = vec4(0.0);
 uniform float brightness : hint_range(0.0, 4.0) = 1.20;
 
 // Points are sized in SCREEN space, not world space.
@@ -67,7 +72,9 @@ void vertex() {
 
 	// Negative marks a highlighted object; see SatelliteField.set_highlight().
 	bool is_highlighted = highlight < 0.0;
-	v_color = is_highlighted ? highlight_color : regime_color(regime);
+	vec4 base = base_color_override.a > 0.0
+		? base_color_override : regime_color(regime);
+	v_color = is_highlighted ? highlight_color : base;
 	v_color.a *= abs(highlight);
 	if (is_highlighted) {
 		size_mult *= highlight_size_boost;

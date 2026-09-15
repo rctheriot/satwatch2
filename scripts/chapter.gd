@@ -23,6 +23,14 @@ extends Resource
 ## Colour for highlighted objects. Red reads as debris or hazard against the
 ## blue LEO population; green suits an operational constellation.
 @export var highlight_color: Color = Color(1.0, 0.28, 0.24)
+## Colour for everything NOT highlighted. Alpha 0 means "use regime colours".
+## Set it when not-highlighted is a meaningful state in its own right rather
+## than just background -- in the surveillance chapter, out of view is as much
+## the point as in view.
+@export var base_color: Color = Color(0, 0, 0, 0)
+## Brightness of the un-highlighted population. Low when they are context, high
+## when they carry meaning.
+@export var dim_others: float = 0.28
 @export var content_scale: float = 1.45
 @export var altitude_exaggeration: float = 2.0
 ## Multiplier on the base screen-space point size. 1.0 everywhere gives uniform

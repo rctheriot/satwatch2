@@ -47,6 +47,16 @@ var _markers: Array[MeshInstance3D] = []
 var _volumes: Array[MeshInstance3D] = []
 var _visible_flags: PackedByteArray = PackedByteArray()
 var _cursor := 0
+var _updated := false
+
+## How many sites are evaluated per frame.
+##
+## One per frame meant a full pass took 15 frames -- a quarter of a second, and
+## the colouring visibly ticked. That matters because at the demo's 60x time
+## rate an object crosses a site's coverage in well under a second of real time,
+## so a 4 Hz refresh is genuinely too coarse to follow. Five per frame gives a
+## complete pass every three frames.
+const SITES_PER_FRAME := 5
 var _pending: PackedByteArray = PackedByteArray()
 
 func build() -> void:
@@ -180,6 +190,17 @@ func update_visibility(unix_seconds: float, gmst: float, sun: Vector3) -> void:
 		_visible_flags.resize(n)
 		_pending.resize(n)
 
+	for _step in SITES_PER_FRAME:
+		_update_one_site(unix_seconds, gmst, sun)
+
+## True once per completed pass, then cleared. Callers use it to avoid redoing
+## work that would produce an identical answer.
+func consume_updated() -> bool:
+	var was := _updated
+	_updated = false
+	return was
+
+func _update_one_site(unix_seconds: float, gmst: float, sun: Vector3) -> void:
 	var site := _cursor % GroundSites.SITES.size()
 	_cursor += 1
 	var s: Array = GroundSites.SITES[site]
@@ -222,6 +243,7 @@ func update_visibility(unix_seconds: float, gmst: float, sun: Vector3) -> void:
 		for c in site_counts:
 			t += c
 		total_visible = t
+		_updated = true
 
 func visible_indices() -> PackedInt32Array:
 	var out := PackedInt32Array()

@@ -23,22 +23,18 @@ extends Node3D
 const PANEL_Z := -2.45
 const PANEL_X := 2.22
 const TOP_Y := 0.41             ## Eye-relative; 2.05 m above the floor.
-const BOTTOM_TOP_EDGE := -0.21  ## Bottom panels are top-aligned here.
+const BOTTOM_TOP_EDGE := -0.50  ## Time bar is top-aligned here.
+const SIDE_PANEL_HEIGHT := 1.40
 
 var left: WorldPanel
 var right: WorldPanel
 var time_bar: WorldPanel
-var provenance: WorldPanel
 
 var _chapter_title: Label
 var _chapter_sub: Label
 var _legend_rows: Dictionary = {}
-var _detail_rows: Dictionary = {}
 var _explanation: Label
-var _detail_area: VBoxContainer
-var _object_rows: VBoxContainer
 var _site_rows: VBoxContainer
-var _detail_name: Label
 var _time_label: Label
 var _rate_label: Label
 var _exaggeration_label: Label
@@ -47,23 +43,26 @@ var _comfort_warned := false
 var _site_signature := ""
 
 func build(catalog: CatalogStore, weather: SpaceWeatherStore = null) -> void:
-	var top := Vector2(1.52, 1.05)
-	left = _make_panel(top, Vector3(-PANEL_X, TOP_Y, PANEL_Z), _build_left(catalog))
-	right = _make_panel(top, Vector3(PANEL_X, TOP_Y, PANEL_Z), _build_right())
+	# The left panel is taller than the right: it carries the fidelity caveats
+	# that the removed bottom-right panel used to hold.
+	# Both side panels are the same size and top-aligned. The left carries the
+	# catalog and the fidelity caveats the removed bottom-right panel held; the
+	# right carries the explanation and, during the surveillance chapter, the
+	# per-site visibility list, which needs the room.
+	var side := Vector2(1.52, SIDE_PANEL_HEIGHT)
+	var side_y := TOP_Y - (SIDE_PANEL_HEIGHT - 1.05) * 0.5
+	left = _make_panel(side, Vector3(-PANEL_X, side_y, PANEL_Z),
+		_build_left(catalog, weather))
+	right = _make_panel(side, Vector3(PANEL_X, side_y, PANEL_Z), _build_right())
 
 	var time_size := Vector2(1.52, 0.30)
 	time_bar = _make_panel(time_size,
 		Vector3(-PANEL_X, BOTTOM_TOP_EDGE - time_size.y * 0.5, PANEL_Z),
 		_build_time_bar())
 
-	var prov_size := Vector2(1.52, 0.68)
-	provenance = _make_panel(prov_size,
-		Vector3(PANEL_X, BOTTOM_TOP_EDGE - prov_size.y * 0.5, PANEL_Z),
-		_build_provenance(catalog, weather))
-
 	# Only the clock changes every frame. At 15.5 Mpix/frame the fill saved by
-	# not re-rendering three static SubViewports is worth claiming.
-	for panel in [left, right, provenance]:
+	# not re-rendering static SubViewports is worth claiming.
+	for panel in [left, right]:
 		panel.set_update_always(false)
 
 func _make_panel(size: Vector2, pos: Vector3, content: Control) -> WorldPanel:
@@ -78,7 +77,7 @@ func _column() -> VBoxContainer:
 	v.add_theme_constant_override("separation", 14)
 	return v
 
-func _build_left(catalog: CatalogStore) -> Control:
+func _build_left(catalog: CatalogStore, weather: SpaceWeatherStore) -> Control:
 	var bg := PanelTheme.backdrop()
 	var col := _column()
 	bg.add_child(col)
@@ -117,6 +116,19 @@ func _build_left(catalog: CatalogStore) -> Control:
 	col.add_child(PanelTheme.label("%d TRACKED OBJECTS" % total, 28))
 	_comfort_label = PanelTheme.label("", 22, PanelTheme.WARN)
 	col.add_child(_comfort_label)
+
+	# The provenance panel is gone, but these two lines are not decoration.
+	# Overstating fidelity to an audience that works this problem daily costs
+	# more credibility than the demo can buy back, and exaggerated geometry that
+	# is not labelled is simply wrong. They live here now.
+	col.add_child(PanelTheme.rule())
+	col.add_child(_wrapped("%s, %s frame. Error grows to kilometres per day in "
+		% [catalog.propagator, catalog.frame]
+		+ "LEO. Not an operational conjunction product.", PanelTheme.WARN))
+	_exaggeration_label = _wrapped("", PanelTheme.WARN)
+	col.add_child(_exaggeration_label)
+	if weather != null and weather.loaded:
+		col.add_child(_wrapped(weather.summary(), PanelTheme.DIM))
 	return bg
 
 func _build_right() -> Control:
@@ -125,38 +137,18 @@ func _build_right() -> Control:
 	bg.add_child(col)
 
 	col.add_child(PanelTheme.label("WHAT YOU'RE SEEING", 24, PanelTheme.DIM))
-	_explanation = PanelTheme.label("", 25)
+	_explanation = PanelTheme.label("", 26)
 	_explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_explanation.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(_explanation)
 
-	col.add_child(PanelTheme.rule())
-	# One area, two uses: object details normally, the site list during the
-	# surveillance chapter. They are never both relevant at once.
-	_detail_area = VBoxContainer.new()
-	_detail_area.add_theme_constant_override("separation", 4)
-	col.add_child(_detail_area)
-
-	_object_rows = VBoxContainer.new()
-	_object_rows.add_theme_constant_override("separation", 4)
-	_detail_area.add_child(_object_rows)
-	_detail_name = PanelTheme.label("— nothing selected —", 26, PanelTheme.DIM)
-	_object_rows.add_child(_detail_name)
-	for key in ["NORAD ID", "REGIME", "PERIGEE", "APOGEE", "INCLINATION", "PERIOD"]:
-		var row := HBoxContainer.new()
-		row.add_child(PanelTheme.label(key, 22, PanelTheme.DIM))
-		var spacer := Control.new()
-		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(spacer)
-		var val := PanelTheme.label("—", 24)
-		row.add_child(val)
-		_detail_rows[key] = val
-		_object_rows.add_child(row)
-
+	# Per-site visibility, shown only during the surveillance chapter. There is
+	# no object-detail readout any more: picking one satellite out of 14,745 was
+	# never the point, and the reticle was competing with the content.
 	_site_rows = VBoxContainer.new()
 	_site_rows.add_theme_constant_override("separation", 4)
 	_site_rows.visible = false
-	_detail_area.add_child(_site_rows)
+	col.add_child(_site_rows)
 	return bg
 
 
@@ -172,30 +164,6 @@ func _build_time_bar() -> Control:
 	row.add_child(spacer)
 	_rate_label = PanelTheme.label("", 40, PanelTheme.ACCENT)
 	row.add_child(_rate_label)
-	return bg
-
-func _build_provenance(catalog: CatalogStore, weather: SpaceWeatherStore) -> Control:
-	# Non-negotiable for this audience. Overstating fidelity to people who work
-	# this problem daily costs more credibility than the demo can buy back.
-	var bg := PanelTheme.backdrop()
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 6)
-	bg.add_child(col)
-
-	var spread := catalog.epoch_spread_days()
-	col.add_child(_wrapped(
-		"SOURCE %s · BUILT %s · ELEMENT EPOCH SPREAD %.1f days"
-			% [catalog.source, catalog.built_utc.left(19), spread], PanelTheme.DIM))
-	col.add_child(_wrapped(
-		"%s, %s frame. Error grows to kilometres per day in LEO. "
-		% [catalog.propagator, catalog.frame]
-		+ "Not an operational conjunction product.", PanelTheme.WARN))
-	_exaggeration_label = _wrapped("", PanelTheme.WARN)
-	col.add_child(_exaggeration_label)
-	if weather != null and weather.loaded:
-		col.add_child(PanelTheme.rule())
-		col.add_child(_wrapped(weather.summary(), PanelTheme.ACCENT))
-		col.add_child(_wrapped(weather.provenance(), PanelTheme.DIM))
 	return bg
 
 func _wrapped(text: String, color: Color) -> Label:
@@ -248,7 +216,6 @@ func set_chapter(c: Chapter, idx: int, total: int) -> void:
 	_chapter_title.text = c.title
 	_chapter_sub.text = "%s   (%d/%d)" % [c.subtitle, idx + 1, total]
 	_explanation.text = c.explanation
-	_object_rows.visible = not c.show_sensors
 	_site_rows.visible = c.show_sensors
 	left.set_update_always(false)   # UPDATE_ONCE: re-render exactly one frame.
 	right.set_update_always(false)
@@ -257,7 +224,7 @@ func set_exaggeration(k: float) -> void:
 	# Whenever the geometry is not true, say so on screen.
 	_exaggeration_label.text = "" if is_equal_approx(k, 1.0) \
 		else "ALTITUDE EXAGGERATED x%.1f — orbital radii are not to scale." % k
-	provenance.set_update_always(false)
+	left.set_update_always(false)
 
 ## Nearest visible content, in metres from the eye. Free navigation is allowed
 ## to fly inside the shell, so rather than blocking the camera we say when the
@@ -276,18 +243,3 @@ func set_comfort(nearest_m: float) -> void:
 func set_time(utc: String, rate: String) -> void:
 	_time_label.text = utc
 	_rate_label.text = rate
-
-func set_selection(obj: Variant) -> void:
-	right.set_update_always(false)
-	if obj == null:
-		_detail_name.text = "— nothing selected —"
-		for v in _detail_rows.values():
-			v.text = "—"
-		return
-	_detail_name.text = String(obj.get("name", "UNKNOWN"))
-	_detail_rows["NORAD ID"].text = str(obj.get("norad_id", 0))
-	_detail_rows["REGIME"].text = String(obj.get("regime", "—"))
-	_detail_rows["PERIGEE"].text = "%.0f km" % float(obj.get("perigee_km", 0.0))
-	_detail_rows["APOGEE"].text = "%.0f km" % float(obj.get("apogee_km", 0.0))
-	_detail_rows["INCLINATION"].text = "%.2f°" % float(obj.get("inclination_deg", 0.0))
-	_detail_rows["PERIOD"].text = "%.1f min" % float(obj.get("period_min", 0.0))

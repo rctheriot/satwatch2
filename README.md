@@ -36,7 +36,10 @@ Zoom range: the globe spans roughly 27 % to 56 % of the wall width.
 | Time rate | Shoulders | `[` / `]` |
 | Play / pause | A | `Space` |
 | Chapter | D-pad ←→ | `←` `→` |
-| Select under reticle | X | RMB |
+| Free-fly toggle | Y | `F` |
+
+There is no object selection. Picking one satellite out of 14,745 was never the
+point, and the reticle competed with the content for attention.
 
 ## Scene structure
 
@@ -67,6 +70,13 @@ whole scene against a wall that is physically fixed. There is no fly-through.
 The addon is neutralised by zeroing `move_speed`, `look_sensitivity` and
 `controller_look_speed` in `main.tscn` — it is not forked — and
 `scripts/rig_controller.gd` drives an `EarthRig` instead.
+
+**Panels: two side panels and a clock strip, nothing else.** The bottom-right
+provenance panel was removed. The two lines that were load-bearing — the SGP4
+fidelity caveat and the altitude-exaggeration warning — moved into the left
+panel rather than disappearing. Overstating fidelity to an audience that works
+this problem daily costs more than the demo can buy back, and exaggerated
+geometry that is not labelled is simply wrong.
 
 **Wall-fixed UI is PARENTED to the camera pivot, not tracking it.** Copying the
 head transform each frame looked correct but was one frame stale — Godot calls
@@ -342,10 +352,18 @@ are geometrically correct and neither tells the viewer anything. The volumes are
 therefore drawn truncated, with a bright rim doing the work the faint fill
 cannot, while the visibility counts are computed against full range regardless.
 
-Visibility is recomputed one site per frame, round-robin. A full pass is 15 sites
-× 16k objects, which is a visible stutter in one frame and a few hundred
-microseconds spread across fifteen — the network refreshes four times a second,
-far faster than the picture meaningfully changes.
+Objects in view of at least one site are drawn **green**, the rest **red**. Both
+states carry meaning here, so neither is pushed into the background — and where
+the red is happens to be the point. The network is concentrated in the northern
+hemisphere and the southern gap is real.
+
+Visibility is recomputed five sites per frame, round-robin. A full pass is 15 sites × 16k
+objects, which is a visible stutter done in one frame. One site per frame was
+the first fix, but at 4 Hz the colouring visibly ticked: at the demo's 60x time
+rate an object crosses a site's coverage in well under a second of real time, so
+that refresh was genuinely too coarse. Five per frame completes a pass every
+three frames, and the highlight is only rewritten when a pass publishes new
+results rather than every frame.
 
 ## Chapters
 

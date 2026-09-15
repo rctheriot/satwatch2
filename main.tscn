@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3 uid="uid://d4m7g1ny1xiu3"]
+[gd_scene load_steps=24 format=3 uid="uid://d4m7g1ny1xiu3"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://d2mxktnyjcc1a" path="res://addons/stereo_wall_display/stereo_wall_display.gd" id="2_stereo"]
@@ -9,7 +9,6 @@
 [ext_resource type="Script" path="res://scripts/sensor_network.gd" id="16_sensors"]
 [ext_resource type="Script" path="res://scripts/satellite_field.gd" id="5_field"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6_hud"]
-[ext_resource type="Script" path="res://scripts/selection.gd" id="7_sel"]
 [ext_resource type="Script" path="res://scripts/chapter_deck.gd" id="8_deck"]
 [ext_resource type="Shader" path="res://shaders/earth.gdshader" id="9_earth"]
 [ext_resource type="Shader" path="res://shaders/atmosphere.gdshader" id="10_atmo"]
@@ -154,9 +153,6 @@ altitude_exaggeration = 2.0
 
 [node name="UIRig" type="Node3D" parent="."]
 script = ExtResource("6_hud")
-
-[node name="Selection" type="Node3D" parent="."]
-script = ExtResource("7_sel")
 
 [node name="ChapterDeck" type="Node" parent="."]
 script = ExtResource("8_deck")

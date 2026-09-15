@@ -47,6 +47,9 @@ var last_update_usec: int = 0
 ## Applied to highlighted objects; set per chapter. Pushed to the shader by
 ## main.gd, since the material is shared.
 var highlight_color: Color = Color(1.0, 0.28, 0.24)
+## Alpha 0 means un-highlighted objects keep their regime colour.
+var base_color: Color = Color(0, 0, 0, 0)
+var dim_others: float = 0.28
 
 ## Cached outermost exaggerated radius, in Earth radii. ContentRig needs this
 ## every frame for the stereo comfort clamp, but it only changes when the filter
@@ -107,7 +110,7 @@ func set_filter(regimes: Array) -> void:
 ## Because colour now does the separating, the rest can stay dimmer-but-legible
 ## rather than being pushed to near-black; the surrounding population is the
 ## context that makes a debris cloud mean anything.
-func set_highlight(indices: PackedInt32Array, dim_others: float = 0.28) -> void:
+func set_highlight(indices: PackedInt32Array) -> void:
 	_highlight.fill(dim_others if indices.size() > 0 else 1.0)
 	for i in indices:
 		if i >= 0 and i < _highlight.size():

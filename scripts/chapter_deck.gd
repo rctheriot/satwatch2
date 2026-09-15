@@ -159,16 +159,20 @@ This is the mechanism behind the concern that debris begets debris: every fragme
 	var sensors := Chapter.new()
 	sensors.title = "SURVEILLANCE NETWORK"
 	sensors.subtitle = "What the ground can actually see, right now"
-	sensors.explanation = """Blue cones are ground radars; amber are optical telescopes. Each cone is the volume that site can geometrically see — everything above its horizon mask, out to a nominal range.
+	sensors.explanation = """Green objects are in view of at least one ground site right now. Red are seen by nobody.
 
-Note how flat and wide the radar volumes are. A 3-degree mask means an 87-degree half-angle, so a surveillance radar's access volume really is close to a hemisphere. That is why a handful of sites can watch most of low orbit.
+Blue cones are radars, amber are optical telescopes. A 3-degree horizon mask means an 87-degree half-angle, so a radar's access volume really is close to a hemisphere — which is how a handful of sites watch most of low orbit.
 
-The optical sites behave differently. They see reflected sunlight, so they need darkness on the ground and sunlight on the target at the same time — watch them switch off as their site turns into daylight. That narrow window each night is when most deep-space surveillance actually happens.
+Watch where the red is. The network is concentrated in the northern hemisphere, and the southern gap is real.
 
-Counts are exact geometry. Ranges are nominal: real detection capability depends on sensor parameters that are not public."""
+Optical sites need darkness on the ground and sunlight on the target at once, so most are off at any moment. Counts are exact geometry; ranges are nominal."""
 	sensors.regimes = ["LEO"]
 	sensors.show_sensors = true
-	sensors.highlight_color = Color(0.45, 1.0, 0.75)
+	# Green in view, red out of view. Both states matter here, so neither is
+	# pushed into the background.
+	sensors.highlight_color = Color(0.32, 1.0, 0.45)
+	sensors.base_color = Color(1.0, 0.26, 0.22, 1.0)
+	sensors.dim_others = 0.62
 	sensors.content_scale = 1.45
 	sensors.altitude_exaggeration = 2.0
 	sensors.elevation = 0.45
@@ -209,6 +213,8 @@ func apply(i: int, animate: bool = true) -> void:
 	var c := chapters[index]
 
 	field.highlight_color = c.highlight_color
+	field.base_color = c.base_color
+	field.dim_others = c.dim_others
 	rig.content_scale = c.content_scale
 	field.altitude_exaggeration = c.altitude_exaggeration
 	field.point_size = c.point_size

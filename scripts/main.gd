@@ -26,7 +26,6 @@ const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 @onready var atmosphere: MeshInstance3D = $EarthRig/Atmosphere
 @onready var field: SatelliteField = $EarthRig/SatelliteField
 @onready var hud: Hud = $UIRig
-@onready var selection: SelectionController = $Selection
 @onready var deck: ChapterDeck = $ChapterDeck
 @onready var camera: CameraDirector = $CameraDirector
 @onready var sensors: SensorNetwork = $EarthRig/EarthMesh/SensorNetwork
@@ -83,13 +82,6 @@ func _ready() -> void:
 	sensors.visible = false
 
 	hud.build(catalog, weather)
-
-	selection.field = field
-	selection.rig = rig
-	selection.catalog = catalog
-	selection.clock = clock
-	selection.camera = camera
-	selection.selection_changed.connect(_on_selection_changed)
 
 	deck.camera = camera
 	deck.sensors = sensors
@@ -179,10 +171,6 @@ func _load_aurora() -> void:
 func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 	hud.set_chapter(c, idx, total)
 	hud.set_exaggeration(c.altitude_exaggeration)
-	selection.clear()
-
-func _on_selection_changed(index: int) -> void:
-	hud.set_selection(null if index < 0 else catalog.objects[index])
 
 ## UI that must stay fixed on the physical wall is PARENTED to the camera pivot
 ## rather than having its transform copied each frame.
@@ -203,7 +191,6 @@ func _attach_to_head() -> void:
 		hud.get_parent().remove_child(hud)
 		head.add_child(hud)
 	hud.transform = Transform3D.IDENTITY
-	selection.attach_to_head(head)
 
 
 func _process(_delta: float) -> void:
@@ -238,6 +225,7 @@ func _process(_delta: float) -> void:
 	# Size target is honoured at the content centre, so it tracks the camera
 	# rather than the content scale.
 	_sat_material.set_shader_parameter("highlight_color", field.highlight_color)
+	_sat_material.set_shader_parameter("base_color_override", field.base_color)
 	_sat_material.set_shader_parameter("reference_depth",
 		maxf(camera.distance_to(rig.global_position), 0.2))
 	sun_light.look_at_from_position(sun * 50.0, Vector3.ZERO, Vector3.UP)
@@ -254,8 +242,12 @@ func _process(_delta: float) -> void:
 
 	if sensors.visible:
 		sensors.update_visibility(t, clock.gmst(), clock.sun_direction())
-		hud.set_site_rows(sensors.ranked_sites(8), sensors.total_visible)
-		field.set_highlight(sensors.visible_indices())
+		# Only rewrite the highlight when a full pass has published new results.
+		# Doing it every frame rebuilt a 16k index array and rewrote custom data
+		# for every instance, to produce an identical answer most of the time.
+		if sensors.consume_updated():
+			hud.set_site_rows(sensors.ranked_sites(7), sensors.total_visible)
+			field.set_highlight(sensors.visible_indices())
 
 	hud.set_time(clock.utc_string(), clock.rate_label())
 

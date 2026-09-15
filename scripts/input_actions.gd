@@ -27,7 +27,6 @@ static func register() -> void:
 	_action("time_pause",   [_key(KEY_SPACE)], [JOY_BUTTON_A])
 	_action("time_faster",  [_key(KEY_BRACKETRIGHT)], [JOY_BUTTON_RIGHT_SHOULDER])
 	_action("time_slower",  [_key(KEY_BRACKETLEFT)],  [JOY_BUTTON_LEFT_SHOULDER])
-	_action("select_object", [], [JOY_BUTTON_X], [], [MOUSE_BUTTON_RIGHT])
 	_action("toggle_fly", [_key(KEY_F)], [JOY_BUTTON_Y])
 
 static func _key(keycode: Key) -> InputEventKey:
