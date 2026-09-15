@@ -44,6 +44,24 @@ Checks the Earth-fixed axis convention (a hemisphere flip puts every site in the
 wrong place on a globe that still looks fine), the squared-form elevation test
 against direct computation over 120,000 trials, and the shadow test.
 
+## Camera control
+
+    Godot --path . --headless --script res://tests/verify_camera_control.gd
+
+A chapter transition must yield to the viewer. Checks that an uninterrupted
+transition still arrives, and that an interrupted one stops dead rather than
+dragging the camera back.
+
+## Optional data
+
+    Godot --path . --headless --script res://tests/verify_optional_data.gd
+
+Aurora, aircraft and conjunction data come from live endpoints that can be
+unreachable. A chapter that cannot draw its subject is worse than one that is
+absent -- on a wall, an empty globe reads as the demo being broken. Verified
+empirically too: removing the data files takes the deck from 11 chapters to 9
+with clean messages and no errors.
+
 ## Stereo output
 
     Godot --path . -- --stereo 960 324 --capture shot.png --chapter 0

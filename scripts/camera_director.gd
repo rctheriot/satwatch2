@@ -42,6 +42,9 @@ var elevation := 0.2
 var distance := 4.4
 
 var _dragging := false
+## The chapter transition currently animating, if any. Held so user input can
+## kill it -- see take_control().
+var _transition: Tween = null
 var _body: CharacterBody3D
 var _pivot: Node3D
 
@@ -120,12 +123,38 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			_dragging = event.pressed
+			if event.pressed:
+				take_control()
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
-			distance = clampf(distance / 1.10, min_distance, max_distance)
+			apply_user_zoom(1.0 / 1.10)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-			distance = clampf(distance * 1.10, min_distance, max_distance)
+			apply_user_zoom(1.10)
 	elif event is InputEventMouseMotion and _dragging:
-		_orbit(event.relative.x * 0.005, event.relative.y * 0.005)
+		apply_user_orbit(event.relative.x * 0.005, event.relative.y * 0.005)
+
+## Hand control to the viewer, abandoning any chapter transition in progress.
+##
+## A transition tweens azimuth, elevation and distance directly, so without this
+## a user who grabs the view mid-move is fighting it: they drag, the tween drags
+## back, and the scene appears to resist. Whoever touches the controls wins.
+func take_control() -> void:
+	if _transition != null:
+		if _transition.is_valid():
+			_transition.kill()
+		_transition = null
+
+func is_transitioning() -> bool:
+	return _transition != null and _transition.is_valid()
+
+## Every user-driven camera change goes through these two, so cancellation
+## cannot be forgotten at one of the call sites.
+func apply_user_orbit(d_az: float, d_el: float) -> void:
+	take_control()
+	_orbit(d_az, d_el)
+
+func apply_user_zoom(factor: float) -> void:
+	take_control()
+	distance = clampf(distance * factor, min_distance, max_distance)
 
 func _orbit(d_az: float, d_el: float) -> void:
 	azimuth = fposmod(azimuth + d_az, TAU)
@@ -137,16 +166,19 @@ func _process(delta: float) -> void:
 	if mode != Mode.ORBIT or not _resolve():
 		return
 
+	# Input.get_vector and get_axis have already applied the action deadzone, so
+	# anything nonzero here is deliberate rather than stick noise -- it should
+	# not take control on a resting controller.
 	var stick := Input.get_vector("rig_orbit_left", "rig_orbit_right",
 		"rig_orbit_up", "rig_orbit_down")
 	if stick.length() > 0.001:
-		_orbit(stick.x * orbit_speed * delta, stick.y * orbit_speed * delta)
+		apply_user_orbit(stick.x * orbit_speed * delta,
+			stick.y * orbit_speed * delta)
 
 	var dolly := Input.get_axis("rig_zoom_out", "rig_zoom_in")
 	if absf(dolly) > 0.001:
 		# Exponential so the feel is constant across three orders of distance.
-		distance = clampf(distance * exp(-dolly * dolly_speed * delta),
-			min_distance, max_distance)
+		apply_user_zoom(exp(-dolly * dolly_speed * delta))
 
 	_apply()
 
@@ -177,13 +209,17 @@ func goto(p_azimuth: float, p_elevation: float, p_distance: float,
 	# Take the short way round rather than unwinding the long way.
 	var az := azimuth + wrapf(p_azimuth - azimuth, -PI, PI)
 	if duration <= 0.0:
+		take_control()
 		azimuth = az
 		elevation = p_elevation
 		distance = p_distance
 		_apply()
 		return
-	var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC) \
+	# Replaces any transition still running, including one the viewer has not
+	# interrupted -- two chapter changes in quick succession must not blend.
+	take_control()
+	_transition = create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC) \
 		.set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(self, "azimuth", az, duration)
-	tw.tween_property(self, "elevation", p_elevation, duration)
-	tw.tween_property(self, "distance", p_distance, duration)
+	_transition.tween_property(self, "azimuth", az, duration)
+	_transition.tween_property(self, "elevation", p_elevation, duration)
+	_transition.tween_property(self, "distance", p_distance, duration)

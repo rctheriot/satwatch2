@@ -78,6 +78,16 @@ panel rather than disappearing. Overstating fidelity to an audience that works
 this problem daily costs more than the demo can buy back, and exaggerated
 geometry that is not labelled is simply wrong.
 
+**User input cancels a chapter transition.** A transition tweens azimuth,
+elevation and distance directly, so a viewer who grabs the controls mid-move was
+fighting it — they drag, the tween drags back, and the scene appears to resist.
+Every user-driven camera change now goes through `apply_user_orbit()` /
+`apply_user_zoom()`, which kill the tween first, so cancellation cannot be
+forgotten at one call site. Whoever touches the controls wins.
+`tests/verify_camera_control.gd` checks both directions: an uninterrupted
+transition still arrives, and an interrupted one leaves the camera exactly where
+the viewer put it.
+
 **Wall-fixed UI does not depth-test against the scene.** The panels are real
 geometry 2.45 m in front of the viewer, so zooming the content in far enough
 pushed the globe through them and the UI disappeared into the Earth. A panel
