@@ -22,6 +22,8 @@ var index: int = 0
 var camera: CameraDirector
 var sensors: SensorNetwork
 var aircraft: AircraftLayer
+var tec: MeshInstance3D
+var winds: WindLayer
 var rig: ContentRig
 var field: SatelliteField
 var catalog: CatalogStore
@@ -188,6 +190,26 @@ Optical sites need darkness on the ground and sunlight on the target at once, so
 
 	return out
 
+## Appended after load, because the wind field is optional data.
+func add_wind_chapter(layer: WindLayer) -> void:
+	var c := Chapter.new()
+	c.title = "THE JET STREAM"
+	c.subtitle = "250 hPa winds, peak %.0f km/h" % (layer.peak_speed_ms * 3.6)
+	c.explanation = """Streamlines through the real 250 hPa wind field — about 10.5 kilometres up, which is airliner cruise altitude.
+
+Colour is wind speed, on a fixed scale so it means the same thing every day: violet below 15 m/s, magenta near 30 where a jet stream is conventionally declared, orange near 50, white at 65 and above. Trail length is speed too — each streak is seven hours of travel, so the fast air draws the long streaks.
+
+These are not decoration. A jet stream core can exceed 300 km/h, and flying with it or against it is the difference between two very different flight plans — transit time, fuel load, and sometimes whether a route closes altogether.
+
+Note the structure: strong westerlies in a band around each mid-latitude, weak and easterly across the tropics. The southern jets are the stronger ones at this time of year.
+
+The aircraft in the previous chapter are flying through this."""
+	c.show_winds = true
+	c.show_satellites = false
+	c.content_scale = 1.6
+	c.elevation = 0.3
+	chapters.append(c)
+
 ## Appended after load, because the aircraft snapshot is optional data.
 func add_aircraft_chapter(layer: AircraftLayer) -> void:
 	var c := Chapter.new()
@@ -208,23 +230,27 @@ The air picture is crowded, contested, and very well understood. The space pictu
 
 ## Appended after load rather than built into the deck, because the aurora layer
 ## is optional data.
-func add_space_weather_chapter(weather: SpaceWeatherStore) -> void:
+func add_space_weather_chapter(weather: SpaceWeatherStore,
+		tec_available: bool = false) -> void:
 	var c := Chapter.new()
 	c.title = "SPACE WEATHER"
 	c.subtitle = "Auroral oval, Kp %.0f (%s) — geomagnetic activity raises drag in low LEO" % [
 		weather.kp_index, weather.storm_label()]
 	c.regimes = ["LEO"]
-	c.explanation = """The green oval is the auroral oval from NOAA's OVATION model, drawn at its real emission altitude rather than painted on the surface. It marks where charged particles from the solar wind are funnelling into the atmosphere.
+	c.explanation = """The green oval is the auroral oval from NOAA's OVATION model, drawn at its real emission altitude. It marks where charged particles from the solar wind are funnelling into the atmosphere.
 
-It matters here because the same disturbance heats and expands the upper atmosphere. Drag rises on everything in low orbit, orbits decay faster than predicted, and objects can be temporarily lost and have to be re-acquired.
+Above it, the coloured shell is ionospheric total electron content — the number of electrons in a column, from NOAA's GloTEC model. Brighter means denser.
 
-Space weather is why the predictions on this wall carry error bars."""
+That second layer is the one with operational teeth. A GNSS signal crossing a dense ionosphere arrives late, so the receiver reports the wrong range. It is not the absolute level that hurts so much as sharp gradients across it, which is why GPS accuracy degrades during solar activity — and why the equatorial band, where TEC is highest and most structured, is the worst place to need precision.
+
+The same disturbance expands the upper atmosphere, raising drag on everything in low orbit. One event, three consequences: lights in the sky, degraded navigation, and orbits that decay faster than predicted."""
 	c.content_scale = 1.45
 	c.altitude_exaggeration = 2.0
 	# Looking well down onto the pole, where the oval lives. The night side is
 	# wherever the sun is not, so the presenter orbits in azimuth to find it --
 	# which is itself the point being made.
 	c.elevation = 1.15
+	c.show_tec = tec_available
 	chapters.append(c)
 
 ## Distance that keeps the outermost visible object PRESET_CLEARANCE beyond the
@@ -259,6 +285,10 @@ func apply(i: int, animate: bool = true) -> void:
 		sensors.visible = c.show_sensors
 	if aircraft != null:
 		aircraft.visible = c.show_aircraft
+	if tec != null:
+		tec.visible = c.show_tec
+	if winds != null:
+		winds.visible = c.show_winds
 	field.visible = c.show_satellites
 
 	# set_filter and the scale change both move the outermost object, so the

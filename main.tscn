@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://d4m7g1ny1xiu3"]
+[gd_scene load_steps=29 format=3 uid="uid://d4m7g1ny1xiu3"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://d2mxktnyjcc1a" path="res://addons/stereo_wall_display/stereo_wall_display.gd" id="2_stereo"]
@@ -8,6 +8,8 @@
 [ext_resource type="Shader" path="res://shaders/aurora.gdshader" id="15_aurora"]
 [ext_resource type="Script" path="res://scripts/sensor_network.gd" id="16_sensors"]
 [ext_resource type="Script" path="res://scripts/aircraft_layer.gd" id="17_air"]
+[ext_resource type="Shader" path="res://shaders/tec.gdshader" id="18_tec"]
+[ext_resource type="Script" path="res://scripts/wind_layer.gd" id="19_wind"]
 [ext_resource type="Script" path="res://scripts/satellite_field.gd" id="5_field"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6_hud"]
 [ext_resource type="Script" path="res://scripts/chapter_deck.gd" id="8_deck"]
@@ -75,6 +77,20 @@ shader_parameter/intensity = 1.5
 shader_parameter/low_color = Color(0.22, 1, 0.55, 1)
 shader_parameter/high_color = Color(1, 0.25, 0.42, 1)
 shader_parameter/terminator_softness = 0.22
+
+[sub_resource type="SphereMesh" id="SphereMesh_tec"]
+radius = 1.0
+height = 2.0
+radial_segments = 128
+rings = 64
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tec"]
+shader = ExtResource("18_tec")
+shader_parameter/sun_direction = Vector3(1, 0, 0)
+shader_parameter/altitude_re = 0.0549
+shader_parameter/altitude_exaggeration = 2.0
+shader_parameter/intensity = 0.9
+shader_parameter/floor_fraction = 0.06
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_air"]
 shader = ExtResource("11_sat")
@@ -160,6 +176,20 @@ script = ExtResource("17_air")
 altitude_exaggeration = 28.0
 point_size = 0.8
 trail_seconds = 1000.0
+
+[node name="TecShell" type="MeshInstance3D" parent="EarthRig/EarthMesh"]
+visible = false
+mesh = SubResource("SphereMesh_tec")
+material_override = SubResource("ShaderMaterial_tec")
+
+[node name="WindLayer" type="Node3D" parent="EarthRig/EarthMesh"]
+visible = false
+script = ExtResource("19_wind")
+particle_count = 4500
+altitude_km = 10.5
+altitude_exaggeration = 28.0
+trail_seconds = 25200.0
+lifetime_seconds = 43200.0
 
 [node name="SensorNetwork" type="Node3D" parent="EarthRig/EarthMesh"]
 script = ExtResource("16_sensors")

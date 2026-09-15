@@ -1,0 +1,17 @@
+{
+ "fetched_utc": "2026-09-15T23:47:52.264483+00:00",
+ "observation_utc": "2026-09-15T23:25:00Z",
+ "source": "NOAA SWPC GloTEC (assimilative ionosphere model)",
+ "product": "GloTEC Total Electron Content",
+ "grid": {
+  "width": 72,
+  "height": 72,
+  "lon_step": 5.0,
+  "lat_step": 2.5
+ },
+ "full_scale_tecu": 120.0,
+ "min_tecu": 2.43,
+ "max_tecu": 69.45,
+ "mean_tecu": 17.88,
+ "note": "TEC drives GNSS ranging error. A model assimilating ground and space observations, not a direct measurement."
+}

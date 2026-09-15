@@ -15,6 +15,9 @@ const EPHEMERIS_PATH := "res://data/ephemeris.bin"
 const CATALOG_PATH := "res://data/catalog.json"
 const SPACE_WEATHER_PATH := "res://data/space_weather.json"
 const AIRCRAFT_PATH := "res://data/aircraft.json"
+const TEC_PATH := "res://data/tec.json"
+const TEC_TEXTURE_PATH := "res://data/tec.png"
+const WINDS_PATH := "res://data/winds.json"
 ## tools/find_conjunctions.py still produces data/conjunctions.json as a
 ## standalone analysis product -- the close-approach chapter was cut because the
 ## events it finds are Starlink-on-Starlink, which tells a viewer little. The
@@ -31,6 +34,8 @@ const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 @onready var camera: CameraDirector = $CameraDirector
 @onready var sensors: SensorNetwork = $EarthRig/EarthMesh/SensorNetwork
 @onready var aircraft: AircraftLayer = $EarthRig/EarthMesh/AircraftLayer
+@onready var tec: MeshInstance3D = $EarthRig/EarthMesh/TecShell
+@onready var winds: WindLayer = $EarthRig/EarthMesh/WindLayer
 @onready var aurora: MeshInstance3D = $EarthRig/EarthMesh/Aurora
 @onready var sun_light: DirectionalLight3D = $Sun
 @onready var wall: Node = $StereoWallDisplay
@@ -38,12 +43,15 @@ const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 var store := EphemerisStore.new()
 var catalog := CatalogStore.new()
 var weather := SpaceWeatherStore.new()
+var tec_store := TecStore.new()
 
 var _earth_material: ShaderMaterial
 var _atmo_material: ShaderMaterial
 var _sat_material: ShaderMaterial
 var _sky_material: ShaderMaterial
 var _aurora_material: ShaderMaterial
+var _tec_material: ShaderMaterial
+var _wind_material: ShaderMaterial
 var _ready_ok := false
 
 func _ready() -> void:
@@ -55,7 +63,9 @@ func _ready() -> void:
 	_atmo_material = atmosphere.material_override as ShaderMaterial
 	_sat_material = field.material_override as ShaderMaterial
 	_aurora_material = aurora.material_override as ShaderMaterial
+	_tec_material = tec.material_override as ShaderMaterial
 	_load_aurora()
+	_load_tec()
 	var env: Environment = $WorldEnvironment.environment
 	_sky_material = env.sky.sky_material as ShaderMaterial
 	_apply_earth_textures()
@@ -88,6 +98,8 @@ func _ready() -> void:
 	deck.camera = camera
 	deck.sensors = sensors
 	deck.aircraft = aircraft
+	deck.tec = tec
+	deck.winds = winds
 	deck.rig = rig
 	deck.field = field
 	deck.catalog = catalog
@@ -97,6 +109,16 @@ func _ready() -> void:
 	# Optional layers each add their own chapter only if their data is present.
 	# A chapter that cannot draw its subject is worse than one that is absent:
 	# on a wall, an empty globe reads as the demo being broken.
+	if winds.load_from(WINDS_PATH):
+		deck.add_wind_chapter(winds)
+		# Colour is speed, so full scale is set from this field's own peak --
+		# a fixed constant would wash out a calm day and clip a stormy one.
+		_wind_material = winds.get_node("WindTrails").material_override
+	else:
+		winds.visible = false
+		print("No wind field -- run tools/fetch_winds.py for the jet stream "
+			+ "chapter.")
+
 	if aircraft.load_from(AIRCRAFT_PATH):
 		deck.add_aircraft_chapter(aircraft)
 	else:
@@ -105,7 +127,7 @@ func _ready() -> void:
 			+ "domain chapter.")
 
 	if weather.loaded:
-		deck.add_space_weather_chapter(weather)
+		deck.add_space_weather_chapter(weather, tec_store.loaded)
 
 	_ready_ok = true
 	deck.apply(0, false)
@@ -183,6 +205,20 @@ func _load_aurora() -> void:
 		weather.aurora_forecast_utc])
 
 
+## Optional layer: without the texture the shell draws nothing.
+func _load_tec() -> void:
+	if not tec_store.load_from(TEC_PATH) \
+			or not ResourceLoader.exists(TEC_TEXTURE_PATH):
+		tec.visible = false
+		print("No ionosphere data -- run tools/fetch_tec.py for the TEC layer.")
+		return
+	_tec_material.set_shader_parameter("tec_texture", load(TEC_TEXTURE_PATH))
+	tec.visible = false            # the deck turns it on for its chapter
+	print("Ionosphere: %.0f-%.0f TECU (mean %.0f), observed %s" % [
+		tec_store.min_tecu, tec_store.max_tecu, tec_store.mean_tecu,
+		tec_store.observation_utc])
+
+
 func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 	hud.set_chapter(c, idx, total)
 	hud.set_exaggeration(c.altitude_exaggeration)
@@ -257,6 +293,18 @@ func _process(_delta: float) -> void:
 
 	if aircraft.visible:
 		aircraft.update_positions(t)
+	if winds.visible:
+		winds.update_positions(t)
+		# Colour is speed, and a segment's length IS speed x trail_seconds, so
+		# full scale is that distance for the field's own peak -- scaled by the
+		# rig, since the shader measures the segment in world units.
+		_wind_material.set_shader_parameter("speed_full_scale",
+			WindLayer.SPEED_FULL_SCALE_MS * winds.trail_seconds
+			/ 6378137.0 * rig.content_scale)
+	if tec.visible:
+		_tec_material.set_shader_parameter("sun_direction", sun)
+		_tec_material.set_shader_parameter("altitude_exaggeration",
+			field.altitude_exaggeration)
 
 	if sensors.visible:
 		sensors.update_visibility(t, clock.gmst(), clock.sun_direction())

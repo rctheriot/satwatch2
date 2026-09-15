@@ -48,6 +48,10 @@ extends Resource
 @export var show_sensors: bool = false
 ## Show the live ADS-B aircraft layer.
 @export var show_aircraft: bool = false
+## Show the ionospheric TEC shell.
+@export var show_tec: bool = false
+## Show advected 250 hPa wind streamlines.
+@export var show_winds: bool = false
 ## Hide the satellite field. The air-domain chapter needs this: aircraft and
 ## satellites are 40x apart in altitude, so any exaggeration that makes the air
 ## layer visible would badly misrepresent where the satellites are.
