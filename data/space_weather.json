@@ -1,0 +1,13 @@
+{
+ "fetched_utc": "2026-09-15T22:34:41.867229+00:00",
+ "source": "NOAA SWPC (OVATION aurora model, planetary K index, GOES XRS)",
+ "aurora_observation_utc": "2026-09-15T22:25:00Z",
+ "aurora_forecast_utc": "2026-09-15T23:25:00Z",
+ "aurora_peak_probability": 72,
+ "kp_index": 3,
+ "kp_estimated": 2.67,
+ "kp_time_utc": "2026-09-15T22:31:00",
+ "xray_flux_wm2": 2.61841080373415e-07,
+ "xray_class": "B2.6",
+ "note": "Aurora is a model forecast, not an observation. Geomagnetic activity raises thermospheric drag in low LEO, degrading orbit prediction."
+}

@@ -120,6 +120,23 @@ func _default_deck() -> Array[Chapter]:
 
 	return out
 
+## Appended after load, like the conjunction chapter, because the aurora layer
+## is optional data.
+func add_space_weather_chapter(weather: SpaceWeatherStore) -> void:
+	var c := Chapter.new()
+	c.title = "SPACE WEATHER"
+	c.subtitle = "Auroral oval, Kp %.0f (%s) — geomagnetic activity raises drag in low LEO" % [
+		weather.kp_index, weather.storm_label()]
+	c.regimes = ["LEO"]
+	c.content_scale = 1.45
+	c.altitude_exaggeration = 2.0
+	# Looking well down onto the pole, where the oval lives. The night side is
+	# wherever the sun is not, so the presenter orbits in azimuth to find it --
+	# which is itself the point being made.
+	c.elevation = 1.15
+	c.rate_index = 4
+	chapters.append(c)
+
 ## Distance that keeps the outermost visible object PRESET_CLEARANCE beyond the
 ## fusion floor. Chapters with camera_distance = 0 use this.
 static func preset_distance(content_radius_m: float) -> float:

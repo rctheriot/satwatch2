@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://d4m7g1ny1xiu3"]
+[gd_scene load_steps=26 format=3 uid="uid://d4m7g1ny1xiu3"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://d2mxktnyjcc1a" path="res://addons/stereo_wall_display/stereo_wall_display.gd" id="2_stereo"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/content_rig.gd" id="4_rig"]
 [ext_resource type="Script" path="res://scripts/camera_director.gd" id="13_cam"]
 [ext_resource type="Script" path="res://scripts/conjunction_inset.gd" id="14_inset"]
+[ext_resource type="Shader" path="res://shaders/aurora.gdshader" id="15_aurora"]
 [ext_resource type="Script" path="res://scripts/satellite_field.gd" id="5_field"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6_hud"]
 [ext_resource type="Script" path="res://scripts/selection.gd" id="7_sel"]
@@ -54,6 +55,22 @@ shader_parameter/brightness = 1.2
 shader_parameter/rig_scale = 1.0
 shader_parameter/zoom_compensation = 0.55
 shader_parameter/min_pixel_size = 1.7
+
+[sub_resource type="SphereMesh" id="SphereMesh_aurora"]
+radius = 1.0
+height = 2.0
+radial_segments = 128
+rings = 64
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_aurora"]
+shader = ExtResource("15_aurora")
+shader_parameter/sun_direction = Vector3(1, 0, 0)
+shader_parameter/altitude_re = 0.0188
+shader_parameter/altitude_exaggeration = 2.0
+shader_parameter/intensity = 1.5
+shader_parameter/low_color = Color(0.22, 1, 0.55, 1)
+shader_parameter/high_color = Color(1, 0.25, 0.42, 1)
+shader_parameter/terminator_softness = 0.22
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("12_sky")
@@ -113,6 +130,10 @@ content_scale = 1.45
 [node name="EarthMesh" type="MeshInstance3D" parent="EarthRig"]
 mesh = SubResource("SphereMesh_earth")
 material_override = SubResource("ShaderMaterial_earth")
+
+[node name="Aurora" type="MeshInstance3D" parent="EarthRig/EarthMesh"]
+mesh = SubResource("SphereMesh_aurora")
+material_override = SubResource("ShaderMaterial_aurora")
 
 [node name="Atmosphere" type="MeshInstance3D" parent="EarthRig"]
 mesh = SubResource("SphereMesh_atmo")

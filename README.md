@@ -260,6 +260,46 @@ themselves, and the UI says so.
 silently vanish from a Windows export unless added to the export preset's
 non-resource file filter.
 
+## Space weather
+
+`tools/fetch_space_weather.py` pulls the NOAA SWPC OVATION auroral oval, the
+planetary Kp index and GOES X-ray flux. This is on-mission rather than scenery:
+geomagnetic activity heats and expands the thermosphere, raising drag on
+everything in low LEO, so orbits decay faster and predictions degrade. It is the
+physical cause of the fidelity caveat the provenance panel already carries.
+
+The oval is drawn as a shell **above** the surface (~120 km, scaled by the same
+exaggeration the satellite field uses) rather than painted on it. That is both
+truer and better on a stereo wall — the shell carries its own disparity and
+reads as a curtain standing off the limb instead of a decal. Night side only,
+with limb brightening, and a green-to-red ramp that mirrors how strong aurora
+develops red tops.
+
+One data fix: SWPC's grid carries spurious values on its equator row — latitude
+0 comes back with up to 11% probability across 299 of 360 cells while ±10° are
+exactly zero. Left in, it paints a faint band around the equator that anyone who
+knows the phenomenon would spot. Cells below 40° latitude are dropped.
+
+The layer is optional; without the fetch the shell draws nothing.
+
+## Ground-site visibility (not yet built)
+
+Worth stating what is and is not computable, because the distinction decides
+what this can honestly claim:
+
+- **Geometric visibility is exact** and needs no sensor specifications. Given a
+  site's coordinates and a satellite position, whether it is above the local
+  horizon past an elevation mask is pure geometry. Live per-site counts of how
+  many catalogued objects are in view follow directly, as do the extra real
+  constraints on optical sites — the site must be in darkness while the target
+  is still sunlit, both computable from the sun vector already in hand. That
+  constraint is why deep-space optical surveillance only works in a window each
+  night, and it falls out of the data rather than being asserted.
+- **Detection capability is not computable.** It depends on transmit power,
+  aperture, wavelength and target radar cross-section or albedo, none of which
+  is public for SSN sensors. Any range limit drawn must be labelled nominal and
+  illustrative, never presented as real performance.
+
 ## Performance
 
 M1 Max, full catalog, `-- --benchmark 6 --chapter 1`:

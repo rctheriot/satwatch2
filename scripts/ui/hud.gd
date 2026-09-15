@@ -41,7 +41,7 @@ var _exaggeration_label: Label
 var _comfort_label: Label
 var _comfort_warned := false
 
-func build(catalog: CatalogStore) -> void:
+func build(catalog: CatalogStore, weather: SpaceWeatherStore = null) -> void:
 	var top := Vector2(1.52, 1.05)
 	left = _make_panel(top, Vector3(-PANEL_X, TOP_Y, PANEL_Z), _build_left(catalog))
 	right = _make_panel(top, Vector3(PANEL_X, TOP_Y, PANEL_Z), _build_right())
@@ -54,7 +54,7 @@ func build(catalog: CatalogStore) -> void:
 	var prov_size := Vector2(1.52, 0.68)
 	provenance = _make_panel(prov_size,
 		Vector3(PANEL_X, BOTTOM_TOP_EDGE - prov_size.y * 0.5, PANEL_Z),
-		_build_provenance(catalog))
+		_build_provenance(catalog, weather))
 
 	# Only the clock changes every frame. At 15.5 Mpix/frame the fill saved by
 	# not re-rendering three static SubViewports is worth claiming.
@@ -152,7 +152,7 @@ func _build_time_bar() -> Control:
 	row.add_child(_rate_label)
 	return bg
 
-func _build_provenance(catalog: CatalogStore) -> Control:
+func _build_provenance(catalog: CatalogStore, weather: SpaceWeatherStore) -> Control:
 	# Non-negotiable for this audience. Overstating fidelity to people who work
 	# this problem daily costs more credibility than the demo can buy back.
 	var bg := PanelTheme.backdrop()
@@ -170,6 +170,10 @@ func _build_provenance(catalog: CatalogStore) -> Control:
 		+ "Not an operational conjunction product.", PanelTheme.WARN))
 	_exaggeration_label = _wrapped("", PanelTheme.WARN)
 	col.add_child(_exaggeration_label)
+	if weather != null and weather.loaded:
+		col.add_child(PanelTheme.rule())
+		col.add_child(_wrapped(weather.summary(), PanelTheme.ACCENT))
+		col.add_child(_wrapped(weather.provenance(), PanelTheme.DIM))
 	return bg
 
 func _wrapped(text: String, color: Color) -> Label:

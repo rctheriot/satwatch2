@@ -16,6 +16,8 @@ const CATALOG_PATH := "res://data/catalog.json"
 ## Optional -- built by tools/find_conjunctions.py. Absent just means no
 ## close-approach chapter.
 const CONJUNCTIONS_PATH := "res://data/conjunctions.json"
+const SPACE_WEATHER_PATH := "res://data/space_weather.json"
+const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 
 @onready var clock: SimClock = $SimClock
 @onready var rig: ContentRig = $EarthRig
@@ -27,17 +29,20 @@ const CONJUNCTIONS_PATH := "res://data/conjunctions.json"
 @onready var deck: ChapterDeck = $ChapterDeck
 @onready var camera: CameraDirector = $CameraDirector
 @onready var inset: ConjunctionInset = $ConjunctionInset
+@onready var aurora: MeshInstance3D = $EarthRig/EarthMesh/Aurora
 @onready var sun_light: DirectionalLight3D = $Sun
 @onready var wall: Node = $StereoWallDisplay
 
 var store := EphemerisStore.new()
 var catalog := CatalogStore.new()
 var conjunctions := ConjunctionStore.new()
+var weather := SpaceWeatherStore.new()
 
 var _earth_material: ShaderMaterial
 var _atmo_material: ShaderMaterial
 var _sat_material: ShaderMaterial
 var _sky_material: ShaderMaterial
+var _aurora_material: ShaderMaterial
 var _ready_ok := false
 
 func _ready() -> void:
@@ -48,6 +53,8 @@ func _ready() -> void:
 	_earth_material = earth.material_override as ShaderMaterial
 	_atmo_material = atmosphere.material_override as ShaderMaterial
 	_sat_material = field.material_override as ShaderMaterial
+	_aurora_material = aurora.material_override as ShaderMaterial
+	_load_aurora()
 	var env: Environment = $WorldEnvironment.environment
 	_sky_material = env.sky.sky_material as ShaderMaterial
 	_apply_earth_textures()
@@ -70,7 +77,7 @@ func _ready() -> void:
 	camera.target = rig.global_position
 	camera.set_mode(CameraDirector.Mode.ORBIT)
 
-	hud.build(catalog)
+	hud.build(catalog, weather)
 
 	selection.field = field
 	selection.rig = rig
@@ -100,6 +107,9 @@ func _ready() -> void:
 	else:
 		print("No conjunction data -- run tools/find_conjunctions.py to add "
 			+ "that chapter.")
+
+	if weather.loaded:
+		deck.add_space_weather_chapter(weather)
 
 	_ready_ok = true
 	deck.apply(0, false)
@@ -159,6 +169,22 @@ func _apply_earth_textures() -> void:
 			push_warning("Missing %s -- see assets/README.md. Using a flat globe."
 				% pair[1])
 
+## Optional layer: without the texture the shell simply draws nothing, since
+## the shader discards at zero probability.
+func _load_aurora() -> void:
+	if weather.load_from(SPACE_WEATHER_PATH) != OK \
+			or not ResourceLoader.exists(AURORA_TEXTURE_PATH):
+		aurora.visible = false
+		print("No space weather -- run tools/fetch_space_weather.py for the "
+			+ "aurora layer.")
+		return
+	_aurora_material.set_shader_parameter("aurora_texture",
+		load(AURORA_TEXTURE_PATH))
+	print("Space weather: Kp %.0f (%s), aurora peak %d%%, forecast %s" % [
+		weather.kp_index, weather.storm_label(), weather.aurora_peak_probability,
+		weather.aurora_forecast_utc])
+
+
 func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 	hud.set_chapter(c, idx, total)
 	hud.set_exaggeration(c.altitude_exaggeration)
@@ -199,6 +225,12 @@ func _process(_delta: float) -> void:
 	_sat_material.set_shader_parameter("rig_scale", rig.content_scale)
 	sun_light.look_at_from_position(sun * 50.0, Vector3.ZERO, Vector3.UP)
 	_sky_material.set_shader_parameter("frame_inverse", Basis(frame).inverse())
+	if aurora.visible:
+		_aurora_material.set_shader_parameter("sun_direction", sun)
+		# Match the satellite field so the two layers stay consistent: if orbital
+		# altitude is exaggerated, emission altitude has to be too.
+		_aurora_material.set_shader_parameter("altitude_exaggeration",
+			field.altitude_exaggeration)
 
 	# UI rides the head so the panels stay put on the physical wall as the
 	# camera flies. They are authored in head-relative coordinates.
