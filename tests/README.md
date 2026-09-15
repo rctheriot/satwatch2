@@ -36,6 +36,14 @@ Panels must not move relative to the head while the camera does. Add `--copy`
 for the negative control, which reproduces the old copy-the-transform-each-frame
 behaviour and drifts 4.41 m.
 
+## Ground-site geometry
+
+    Godot --path . --headless --script res://tests/verify_sensors.gd
+
+Checks the Earth-fixed axis convention (a hemisphere flip puts every site in the
+wrong place on a globe that still looks fine), the squared-form elevation test
+against direct computation over 120,000 trials, and the shadow test.
+
 ## Stereo output
 
     Godot --path . -- --stereo 960 324 --capture shot.png --chapter 0

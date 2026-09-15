@@ -1,4 +1,4 @@
-[gd_scene load_steps=26 format=3 uid="uid://d4m7g1ny1xiu3"]
+[gd_scene load_steps=27 format=3 uid="uid://d4m7g1ny1xiu3"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://d2mxktnyjcc1a" path="res://addons/stereo_wall_display/stereo_wall_display.gd" id="2_stereo"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/camera_director.gd" id="13_cam"]
 [ext_resource type="Script" path="res://scripts/conjunction_inset.gd" id="14_inset"]
 [ext_resource type="Shader" path="res://shaders/aurora.gdshader" id="15_aurora"]
+[ext_resource type="Script" path="res://scripts/sensor_network.gd" id="16_sensors"]
 [ext_resource type="Script" path="res://scripts/satellite_field.gd" id="5_field"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6_hud"]
 [ext_resource type="Script" path="res://scripts/selection.gd" id="7_sel"]
@@ -138,6 +139,9 @@ material_override = SubResource("ShaderMaterial_earth")
 [node name="Aurora" type="MeshInstance3D" parent="EarthRig/EarthMesh"]
 mesh = SubResource("SphereMesh_aurora")
 material_override = SubResource("ShaderMaterial_aurora")
+
+[node name="SensorNetwork" type="Node3D" parent="EarthRig/EarthMesh"]
+script = ExtResource("16_sensors")
 
 [node name="Atmosphere" type="MeshInstance3D" parent="EarthRig"]
 mesh = SubResource("SphereMesh_atmo")

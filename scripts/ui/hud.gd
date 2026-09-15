@@ -34,12 +34,17 @@ var _chapter_title: Label
 var _chapter_sub: Label
 var _legend_rows: Dictionary = {}
 var _detail_rows: Dictionary = {}
+var _explanation: Label
+var _detail_area: VBoxContainer
+var _object_rows: VBoxContainer
+var _site_rows: VBoxContainer
 var _detail_name: Label
 var _time_label: Label
 var _rate_label: Label
 var _exaggeration_label: Label
 var _comfort_label: Label
 var _comfort_warned := false
+var _site_signature := ""
 
 func build(catalog: CatalogStore, weather: SpaceWeatherStore = null) -> void:
 	var top := Vector2(1.52, 1.05)
@@ -119,24 +124,41 @@ func _build_right() -> Control:
 	var col := _column()
 	bg.add_child(col)
 
-	col.add_child(PanelTheme.label("SELECTED OBJECT", 24, PanelTheme.DIM))
-	_detail_name = PanelTheme.heading("— none —")
-	_detail_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(_detail_name)
-	col.add_child(PanelTheme.rule())
+	col.add_child(PanelTheme.label("WHAT YOU'RE SEEING", 24, PanelTheme.DIM))
+	_explanation = PanelTheme.label("", 25)
+	_explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_explanation.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	col.add_child(_explanation)
 
-	for key in ["NORAD ID", "INTL DES", "REGIME", "PERIGEE", "APOGEE",
-			"INCLINATION", "PERIOD", "TLE EPOCH"]:
+	col.add_child(PanelTheme.rule())
+	# One area, two uses: object details normally, the site list during the
+	# surveillance chapter. They are never both relevant at once.
+	_detail_area = VBoxContainer.new()
+	_detail_area.add_theme_constant_override("separation", 4)
+	col.add_child(_detail_area)
+
+	_object_rows = VBoxContainer.new()
+	_object_rows.add_theme_constant_override("separation", 4)
+	_detail_area.add_child(_object_rows)
+	_detail_name = PanelTheme.label("— nothing selected —", 26, PanelTheme.DIM)
+	_object_rows.add_child(_detail_name)
+	for key in ["NORAD ID", "REGIME", "PERIGEE", "APOGEE", "INCLINATION", "PERIOD"]:
 		var row := HBoxContainer.new()
-		row.add_child(PanelTheme.label(key, 24, PanelTheme.DIM))
+		row.add_child(PanelTheme.label(key, 22, PanelTheme.DIM))
 		var spacer := Control.new()
 		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(spacer)
-		var val := PanelTheme.label("—", 26)
+		var val := PanelTheme.label("—", 24)
 		row.add_child(val)
 		_detail_rows[key] = val
-		col.add_child(row)
+		_object_rows.add_child(row)
+
+	_site_rows = VBoxContainer.new()
+	_site_rows.add_theme_constant_override("separation", 4)
+	_site_rows.visible = false
+	_detail_area.add_child(_site_rows)
 	return bg
+
 
 func _build_time_bar() -> Control:
 	var bg := PanelTheme.backdrop()
@@ -187,11 +209,54 @@ func _wrapped(text: String, color: Color) -> Label:
 func set_detail_visible(v: bool) -> void:
 	right.visible = v
 
+## Live per-site visibility. The panel re-renders only when the numbers change,
+## since it is a SubViewport and redrawing it every frame at this pixel count is
+## fill we do not need to spend.
+func set_site_rows(rows: Array, total: int) -> void:
+	var signature := "%d|" % total
+	for r in rows:
+		signature += "%s:%d:%d|" % [r["name"], r["count"], 1 if r["active"] else 0]
+	if signature == _site_signature:
+		return
+	_site_signature = signature
+
+	for c in _site_rows.get_children():
+		c.queue_free()
+	_site_rows.add_child(PanelTheme.label(
+		"%d OBJECTS IN VIEW OF THE NETWORK" % total, 24, PanelTheme.ACCENT))
+	for r in rows:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		var swatch := ColorRect.new()
+		swatch.color = (PanelTheme.ACCENT if r["kind"] == GroundSites.Kind.RADAR
+			else PanelTheme.WARN)
+		if not r["active"]:
+			swatch.color = Color(0.3, 0.33, 0.38)
+		swatch.custom_minimum_size = Vector2(14, 14)
+		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(swatch)
+		var dim: bool = not r["active"]
+		row.add_child(PanelTheme.label(String(r["name"]), 22,
+			PanelTheme.DIM if dim else PanelTheme.TEXT))
+		var spacer := Control.new()
+		spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(spacer)
+		# "daylight" is the honest reason an optical site shows nothing.
+		row.add_child(PanelTheme.label(
+			"daylight" if dim else str(r["count"]), 22,
+			PanelTheme.DIM if dim else PanelTheme.ACCENT))
+		_site_rows.add_child(row)
+	right.set_update_always(false)
+
 
 func set_chapter(c: Chapter, idx: int, total: int) -> void:
 	_chapter_title.text = c.title
 	_chapter_sub.text = "%s   (%d/%d)" % [c.subtitle, idx + 1, total]
+	_explanation.text = c.explanation
+	_object_rows.visible = not c.show_sensors
+	_site_rows.visible = c.show_sensors
 	left.set_update_always(false)   # UPDATE_ONCE: re-render exactly one frame.
+	right.set_update_always(false)
 
 func set_exaggeration(k: float) -> void:
 	# Whenever the geometry is not true, say so on screen.
@@ -220,16 +285,14 @@ func set_time(utc: String, rate: String) -> void:
 func set_selection(obj: Variant) -> void:
 	right.set_update_always(false)
 	if obj == null:
-		_detail_name.text = "— none —"
+		_detail_name.text = "— nothing selected —"
 		for v in _detail_rows.values():
 			v.text = "—"
 		return
 	_detail_name.text = String(obj.get("name", "UNKNOWN"))
 	_detail_rows["NORAD ID"].text = str(obj.get("norad_id", 0))
-	_detail_rows["INTL DES"].text = String(obj.get("intl_des", "—"))
 	_detail_rows["REGIME"].text = String(obj.get("regime", "—"))
 	_detail_rows["PERIGEE"].text = "%.0f km" % float(obj.get("perigee_km", 0.0))
 	_detail_rows["APOGEE"].text = "%.0f km" % float(obj.get("apogee_km", 0.0))
 	_detail_rows["INCLINATION"].text = "%.2f°" % float(obj.get("inclination_deg", 0.0))
 	_detail_rows["PERIOD"].text = "%.1f min" % float(obj.get("period_min", 0.0))
-	_detail_rows["TLE EPOCH"].text = String(obj.get("epoch", "—")).left(19)

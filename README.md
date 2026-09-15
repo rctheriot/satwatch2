@@ -310,25 +310,63 @@ knows the phenomenon would spot. Cells below 40° latitude are dropped.
 
 The layer is optional; without the fetch the shell draws nothing.
 
-## Ground-site visibility (not yet built)
+## Ground-site visibility
 
-Worth stating what is and is not computable, because the distinction decides
-what this can honestly claim:
+`scripts/ground_sites.gd` holds the Space Surveillance Network sites (open-source
+locations) and the geometry; `scripts/sensor_network.gd` renders the volumes and
+computes what each site can currently see.
 
-- **Geometric visibility is exact** and needs no sensor specifications. Given a
-  site's coordinates and a satellite position, whether it is above the local
-  horizon past an elevation mask is pure geometry. Live per-site counts of how
-  many catalogued objects are in view follow directly, as do the extra real
-  constraints on optical sites — the site must be in darkness while the target
-  is still sunlit, both computable from the sun vector already in hand. That
-  constraint is why deep-space optical surveillance only works in a window each
-  night, and it falls out of the data rather than being asserted.
+What is and is not computed, because the distinction decides what this may claim:
+
+- **Geometric visibility is exact** and needs no sensor specifications. Whether
+  an object is above a site's horizon past an elevation mask is pure geometry, so
+  "5,922 objects are in view of the network right now" is a real number. Optical
+  sites carry the two further real constraints — the site in darkness, the target
+  still sunlit — both from the sun vector already in hand. Watch the optical
+  sites switch off as their ground turns into daylight; that narrow window each
+  night is when deep-space surveillance actually happens, and it falls out of the
+  data rather than being asserted.
 - **Detection capability is not computable.** It depends on transmit power,
-  aperture, wavelength and target radar cross-section or albedo, none of which
-  is public for SSN sensors. Any range limit drawn must be labelled nominal and
-  illustrative, never presented as real performance.
+  aperture, wavelength and target cross-section, none of which is public. Ranges
+  here are nominal, representing a class of sensor, and labelled as such.
 
-## Performance
+The elevation test is the squared form of `tan(elev) = (c − 1/r)/√(1 − c²)`,
+which removes a square root from something evaluated for every object against
+every site. `tests/verify_sensors.gd` checks it against direct computation across
+120,000 trials.
+
+**What is drawn is cropped; what is counted is not.** At their nominal ranges the
+picture is unreadable — ten radar cones at an 87° half-angle merge into one
+opaque shell, and the optical volumes leave the wall entirely at 45,000 km. Both
+are geometrically correct and neither tells the viewer anything. The volumes are
+therefore drawn truncated, with a bright rim doing the work the faint fill
+cannot, while the visibility counts are computed against full range regardless.
+
+Visibility is recomputed one site per frame, round-robin. A full pass is 15 sites
+× 16k objects, which is a visible stutter in one frame and a few hundred
+microseconds spread across fifteen — the network refreshes four times a second,
+far faster than the picture meaningfully changes.
+
+## Chapters
+
+Each carries an explanation on the right panel saying what the viewer is actually
+looking at. A wall of unexplained dots impresses nobody.
+
+1. **Low Earth Orbit** — the crowded shells, altitude exaggerated ×2
+2. **The Full Catalog** — pulled back to true scale, LEO ball against the GEO ring
+3–6. **LEO / MEO / GEO / HEO** — one regime at a time
+7. **Constellation** — Starlink in green against the rest of LEO
+8. **Breakup: Fengyun-1C** — 2007 ASAT debris still tracked, in red
+9. **Collision: 2009** — Cosmos 2251 / Iridium 33
+10. **Surveillance Network** — ground sites, coverage volumes, live in-view counts
+11. **Space Weather** — auroral oval and Kp
+
+The close-approach chapter is built but not in the deck: the events the screen
+finds are Starlink-on-Starlink, which says little a viewer cares about.
+`tools/find_conjunctions.py` and `ConjunctionInset` are intact, and one
+`deck.add_conjunction_chapter()` call restores it if a more telling event appears.
+
+## Performance## Performance
 
 M1 Max, full catalog, `-- --benchmark 6 --chapter 1`:
 

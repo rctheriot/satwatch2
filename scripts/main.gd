@@ -29,6 +29,7 @@ const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 @onready var deck: ChapterDeck = $ChapterDeck
 @onready var camera: CameraDirector = $CameraDirector
 @onready var inset: ConjunctionInset = $ConjunctionInset
+@onready var sensors: SensorNetwork = $EarthRig/EarthMesh/SensorNetwork
 @onready var aurora: MeshInstance3D = $EarthRig/EarthMesh/Aurora
 @onready var sun_light: DirectionalLight3D = $Sun
 @onready var wall: Node = $StereoWallDisplay
@@ -77,6 +78,11 @@ func _ready() -> void:
 	camera.target = rig.global_position
 	camera.set_mode(CameraDirector.Mode.ORBIT)
 
+	sensors.field = field
+	sensors.store = store
+	sensors.build()
+	sensors.visible = false
+
 	hud.build(catalog, weather)
 
 	selection.field = field
@@ -88,6 +94,7 @@ func _ready() -> void:
 
 	deck.camera = camera
 	deck.conjunctions = conjunctions
+	deck.sensors = sensors
 	deck.inset = inset
 	deck.rig = rig
 	deck.field = field
@@ -95,18 +102,12 @@ func _ready() -> void:
 	deck.clock = clock
 	deck.chapter_changed.connect(_on_chapter_changed)
 
-	if conjunctions.load_from(CONJUNCTIONS_PATH) == OK and conjunctions.has_tracks():
-		var pick := conjunctions.best_event()
-		if pick >= 0:
-			deck.add_conjunction_chapter(pick, conjunctions.events[pick])
-			print("Conjunction chapter: %s / %s, %.0f m at %.1f km/s" % [
-				conjunctions.events[pick]["a_name"],
-				conjunctions.events[pick]["b_name"],
-				float(conjunctions.events[pick]["miss_km"]) * 1000.0,
-				float(conjunctions.events[pick]["relative_speed_kms"])])
-	else:
-		print("No conjunction data -- run tools/find_conjunctions.py to add "
-			+ "that chapter.")
+	# The close-approach chapter is not in the deck: the best events the screen
+	# finds are Starlink-on-Starlink, which says little a viewer cares about.
+	# tools/find_conjunctions.py and ConjunctionInset are kept intact -- one
+	# deck.add_conjunction_chapter() call brings it back if a more telling
+	# event turns up (a cross-operator approach, or a debris conjunction).
+	conjunctions.load_from(CONJUNCTIONS_PATH)
 
 	if weather.loaded:
 		deck.add_space_weather_chapter(weather)
@@ -274,6 +275,11 @@ func _process(_delta: float) -> void:
 	inset.update_time(t)
 	hud.set_comfort(camera.eye_position().distance_to(rig.global_position)
 		- rig.content_radius_m())
+
+	if sensors.visible:
+		sensors.update_visibility(t, clock.gmst(), clock.sun_direction())
+		hud.set_site_rows(sensors.ranked_sites(8), sensors.total_visible)
+		field.set_highlight(sensors.visible_indices())
 
 	hud.set_time(clock.utc_string(), clock.rate_label())
 

@@ -7,6 +7,10 @@ extends Resource
 
 @export var title: String = ""
 @export var subtitle: String = ""
+## A few sentences telling the viewer what they are actually looking at, shown
+## on the right panel. A wall of unexplained dots impresses nobody: the point of
+## each chapter is the thing it makes visible, and that has to be said.
+@export_multiline var explanation: String = ""
 
 @export_group("Content")
 ## Empty means every regime.
@@ -35,6 +39,8 @@ extends Resource
 ## Index into ConjunctionStore.events. -1 means this is not a conjunction
 ## chapter; >= 0 shows the magnified encounter inset and jumps the clock to TCA.
 @export var conjunction_index: int = -1
+## Show the Space Surveillance Network layer and its per-site visibility panel.
+@export var show_sensors: bool = false
 
 @export_group("Time")
 @export var rate_index: int = 3
