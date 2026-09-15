@@ -52,9 +52,11 @@ shader_parameter/meo_color = Color(0.55, 1, 0.62, 1)
 shader_parameter/geo_color = Color(1, 0.78, 0.31, 1)
 shader_parameter/heo_color = Color(1, 0.45, 0.55, 1)
 shader_parameter/brightness = 1.2
-shader_parameter/rig_scale = 1.0
-shader_parameter/zoom_compensation = 0.55
-shader_parameter/min_pixel_size = 1.7
+shader_parameter/point_pixels = 2.8
+shader_parameter/depth_cue = 0.3
+shader_parameter/reference_depth = 4.5
+shader_parameter/min_pixel_size = 1.6
+shader_parameter/faint_alpha_floor = 0.55
 
 [sub_resource type="SphereMesh" id="SphereMesh_aurora"]
 radius = 1.0
@@ -142,7 +144,7 @@ material_override = SubResource("ShaderMaterial_atmo")
 [node name="SatelliteField" type="MultiMeshInstance3D" parent="EarthRig"]
 material_override = SubResource("ShaderMaterial_sat")
 script = ExtResource("5_field")
-point_size = 0.0035
+point_size = 1.0
 altitude_exaggeration = 2.0
 
 [node name="UIRig" type="Node3D" parent="."]

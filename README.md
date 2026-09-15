@@ -117,6 +117,17 @@ floats *in front* of it is the contradiction that hurts. So the nearest object
 sits at ~2.05 m — about −7 mm of parallax, barely in front of the wall plane —
 which makes the overrun harmless. The 1.5 m fusion floor remains as a hard stop.
 
+**Points are sized in screen space, not world space.** They used to carry a
+world size scaled by `pow(content_scale, -k)`, tuned when the camera was parked
+and only the content scaled. Once the camera moved too, the two compounded: the
+LEO chapters came out at 0.70 px against 1.20 px for the full-catalog view, and
+after sub-pixel alpha compensation they drew at **0.17 alpha against 0.50** —
+three times dimmer for no reason a viewer could see, which is exactly how it
+looked. Targeting a pixel size directly makes visibility uniform across chapters
+by construction, and the per-chapter and per-regime multipliers then mean what
+they say instead of fighting the framing. `depth_cue` keeps a partial
+perspective shrink so nearer objects still read as nearer.
+
 **Points have a minimum projected size** (`min_pixel_size`, 1.7 px). Below about
 a pixel, a point lands on a sample or misses it depending on sub-pixel position,
 so the field blinks as it moves — and because the two eyes sample from slightly

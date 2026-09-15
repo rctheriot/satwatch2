@@ -23,7 +23,10 @@ const REGIME_IDS := {"LEO": 0.0, "MEO": 1.0, "GEO": 2.0, "HEO": 3.0}
 ## of dimming everything.
 const REGIME_SIZE := {"LEO": 0.60, "MEO": 1.45, "GEO": 1.45, "HEO": 1.30}
 
-@export var point_size: float = 0.0035          ## World units at scale 1.
+## Dimensionless multiplier on the shader's screen-space target size. It used
+## to be a world size, which made it interact with the framing; now a chapter
+## asking for 0.8 gets points 80% the size in every chapter.
+@export var point_size: float = 1.0
 @export_range(1.0, 10.0) var altitude_exaggeration: float = 3.0:
 	set(v):
 		altitude_exaggeration = v

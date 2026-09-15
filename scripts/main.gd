@@ -222,7 +222,10 @@ func _process(_delta: float) -> void:
 	var sun := frame * clock.sun_direction()
 	_earth_material.set_shader_parameter("sun_direction", sun)
 	_atmo_material.set_shader_parameter("sun_direction", sun)
-	_sat_material.set_shader_parameter("rig_scale", rig.content_scale)
+	# Size target is honoured at the content centre, so it tracks the camera
+	# rather than the content scale.
+	_sat_material.set_shader_parameter("reference_depth",
+		maxf(camera.distance_to(rig.global_position), 0.2))
 	sun_light.look_at_from_position(sun * 50.0, Vector3.ZERO, Vector3.UP)
 	_sky_material.set_shader_parameter("frame_inverse", Basis(frame).inverse())
 	if aurora.visible:

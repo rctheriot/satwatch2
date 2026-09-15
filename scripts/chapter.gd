@@ -18,10 +18,9 @@ extends Resource
 @export var highlight_intl_prefix: String = ""
 @export var content_scale: float = 1.45
 @export var altitude_exaggeration: float = 2.0
-## Point size in world units. Wide views need smaller points: the size that
-## reads as a crisp shell at the LEO framing becomes a solid additive disc once
-## 20k LEO objects are packed around a small globe.
-@export var point_size: float = 0.0035
+## Multiplier on the base screen-space point size. 1.0 everywhere gives uniform
+## visibility across chapters; lower it only where a view is genuinely too dense.
+@export var point_size: float = 1.0
 
 @export_group("Camera")
 @export var azimuth: float = 0.0

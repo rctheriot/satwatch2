@@ -65,6 +65,8 @@ func _default_deck() -> Array[Chapter]:
 	full.regimes = []
 	full.content_scale = 0.40
 	full.altitude_exaggeration = 1.0
+	# The one genuinely over-dense view: every regime at once, packed small.
+	full.point_size = 0.85
 	full.elevation = 0.35
 	full.transition_seconds = 5.0
 	out.append(full)
