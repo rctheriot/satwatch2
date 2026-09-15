@@ -12,6 +12,12 @@ uniform vec4 leo_color : source_color = vec4(0.36, 0.78, 1.00, 1.0);
 uniform vec4 meo_color : source_color = vec4(0.55, 1.00, 0.62, 1.0);
 uniform vec4 geo_color : source_color = vec4(1.00, 0.78, 0.31, 1.0);
 uniform vec4 heo_color : source_color = vec4(1.00, 0.45, 0.55, 1.0);
+// Highlighted objects get their own colour rather than just more brightness.
+// A debris cloud picked out only by alpha stays the same hue as the 14,745
+// objects around it, so finding it means hunting for slightly brighter dots.
+// Set per chapter -- red for breakup debris, green for a constellation.
+uniform vec4 highlight_color : source_color = vec4(1.00, 0.28, 0.24, 1.0);
+uniform float highlight_size_boost : hint_range(1.0, 3.0) = 1.45;
 uniform float brightness : hint_range(0.0, 4.0) = 1.20;
 
 // Points are sized in SCREEN space, not world space.
@@ -59,8 +65,13 @@ void vertex() {
 	float size_mult = INSTANCE_CUSTOM.z;
 	float jitter = INSTANCE_CUSTOM.w;
 
-	v_color = regime_color(regime);
-	v_color.a *= highlight;
+	// Negative marks a highlighted object; see SatelliteField.set_highlight().
+	bool is_highlighted = highlight < 0.0;
+	v_color = is_highlighted ? highlight_color : regime_color(regime);
+	v_color.a *= abs(highlight);
+	if (is_highlighted) {
+		size_mult *= highlight_size_boost;
+	}
 
 	// Per-object size and brightness variation. See SatelliteField._jitter():
 	// this breaks the wallpaper condition, where a dense field of

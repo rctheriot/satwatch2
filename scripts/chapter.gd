@@ -16,6 +16,9 @@ extends Resource
 ## Objects whose international designator starts with this are highlighted --
 ## how you isolate the debris cloud from a single breakup event.
 @export var highlight_intl_prefix: String = ""
+## Colour for highlighted objects. Red reads as debris or hazard against the
+## blue LEO population; green suits an operational constellation.
+@export var highlight_color: Color = Color(1.0, 0.28, 0.24)
 @export var content_scale: float = 1.45
 @export var altitude_exaggeration: float = 2.0
 ## Multiplier on the base screen-space point size. 1.0 everywhere gives uniform

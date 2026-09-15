@@ -194,9 +194,35 @@ func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 func _on_selection_changed(index: int) -> void:
 	hud.set_selection(null if index < 0 else catalog.objects[index])
 
+## UI that must stay fixed on the physical wall is PARENTED to the camera pivot
+## rather than having its transform copied each frame.
+##
+## Copying it looked right but drifted: Godot calls _process parent-first, so
+## this node read the head pose before CameraDirector had updated it, leaving the
+## panels one frame stale. Static they looked fine; while orbiting or dollying
+## they swam against the wall. Parenting makes the transform inherited, so no
+## processing order can desynchronise it.
+##
+## Re-checked each frame because the addon frees and rebuilds the pivot whenever
+## edit_mode changes, which the --stereo flag does at startup.
+func _attach_to_head() -> void:
+	var head := camera.head_node()
+	if head == null:
+		return
+	for pair in [[hud, Transform3D.IDENTITY],
+			[inset, Transform3D(Basis.IDENTITY, Vector3(2.22, 0.45, -2.40))]]:
+		var node: Node3D = pair[0]
+		if node.get_parent() != head:
+			node.get_parent().remove_child(node)
+			head.add_child(node)
+		node.transform = pair[1]
+	selection.attach_to_head(head)
+
+
 func _process(_delta: float) -> void:
 	if not _ready_ok:
 		return
+	_attach_to_head()
 	var t := clock.now_unix
 
 	field.update_positions(t)
@@ -224,6 +250,7 @@ func _process(_delta: float) -> void:
 	_atmo_material.set_shader_parameter("sun_direction", sun)
 	# Size target is honoured at the content centre, so it tracks the camera
 	# rather than the content scale.
+	_sat_material.set_shader_parameter("highlight_color", field.highlight_color)
 	_sat_material.set_shader_parameter("reference_depth",
 		maxf(camera.distance_to(rig.global_position), 0.2))
 	sun_light.look_at_from_position(sun * 50.0, Vector3.ZERO, Vector3.UP)

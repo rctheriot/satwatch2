@@ -44,6 +44,10 @@ var _highlight: PackedFloat32Array                  ## Per-catalog-object bright
 ## per-frame work and inflates the very number it is trying to measure.
 var last_update_usec: int = 0
 
+## Applied to highlighted objects; set per chapter. Pushed to the shader by
+## main.gd, since the material is shared.
+var highlight_color: Color = Color(1.0, 0.28, 0.24)
+
 ## Cached outermost exaggerated radius, in Earth radii. ContentRig needs this
 ## every frame for the stereo comfort clamp, but it only changes when the filter
 ## or the exaggeration changes -- recomputing it per frame meant 20k dictionary
@@ -93,11 +97,21 @@ func set_filter(regimes: Array) -> void:
 	multimesh.visible_instance_count = active.size()
 	_write_custom_data()
 
-func set_highlight(indices: PackedInt32Array, dim_others: float = 0.15) -> void:
+## Mark a subset as highlighted.
+##
+## The sign of the stored value carries the flag: NEGATIVE means highlighted,
+## and the shader swaps in a distinct colour for those. Brightness alone was not
+## enough -- a highlighted object kept its regime colour, so picking it out of
+## 14,745 similarly-coloured points meant hunting for slightly brighter dots.
+##
+## Because colour now does the separating, the rest can stay dimmer-but-legible
+## rather than being pushed to near-black; the surrounding population is the
+## context that makes a debris cloud mean anything.
+func set_highlight(indices: PackedInt32Array, dim_others: float = 0.28) -> void:
 	_highlight.fill(dim_others if indices.size() > 0 else 1.0)
 	for i in indices:
 		if i >= 0 and i < _highlight.size():
-			_highlight[i] = 1.0
+			_highlight[i] = -1.0
 	_write_custom_data()
 
 ## Outermost radius among the currently visible objects, after exaggeration.
@@ -125,6 +139,7 @@ func _write_custom_data() -> void:
 		var src: int = active[slot]
 		var b := slot * STRIDE + 12
 		_buffer[b] = REGIME_IDS.get(catalog[src].get("regime", "LEO"), 0.0)
+		# Sign is the highlight flag; magnitude is brightness.
 		_buffer[b + 1] = _highlight[src]
 		_buffer[b + 2] = point_size * REGIME_SIZE.get(catalog[src].get("regime", "LEO"), 1.0)
 		_buffer[b + 3] = _jitter(catalog[src].get("norad_id", src))

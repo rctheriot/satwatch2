@@ -68,6 +68,23 @@ The addon is neutralised by zeroing `move_speed`, `look_sensitivity` and
 `controller_look_speed` in `main.tscn` — it is not forked — and
 `scripts/rig_controller.gd` drives an `EarthRig` instead.
 
+**Wall-fixed UI is PARENTED to the camera pivot, not tracking it.** Copying the
+head transform each frame looked correct but was one frame stale — Godot calls
+`_process` parent-first, so `main.gd` read the pose before `CameraDirector` had
+updated it. Static that is invisible; while orbiting or dollying the panels swim
+against the wall. Parenting makes the transform inherited, so no processing
+order can desynchronise it. `tests/verify_ui_anchor.gd` drives the camera hard
+and requires exactly zero drift; its `--copy` control reproduces the old
+behaviour and measures 4.41 m and 11.46° of drift.
+
+**Highlighting uses colour, not just brightness.** A highlighted object that
+keeps its regime colour has to be found by hunting for slightly brighter dots
+among 14,745 similar ones. The sign of the per-instance highlight value carries
+the flag, and the shader swaps in a per-chapter colour — red for breakup debris,
+green for an operational constellation — with a size boost. Because colour now
+does the separating, the surrounding population stays dimmer-but-legible rather
+than near-black; it is the context that makes a debris cloud mean anything.
+
 **All UI is world-space 3D.** The addon composites the two eye viewports into
 `CanvasLayer` 100 as side-by-side `TextureRect`s. A second 2D UI layer lands on
 one eye's half of the output window. Every panel is a `SubViewport` on a quad —

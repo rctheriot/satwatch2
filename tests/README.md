@@ -28,6 +28,14 @@ when the rig rotates. If it does, dragging appears to change the time of day --
 a very plausible-looking bug, since the terminator still has the right shape.
 Includes the pre-fix behaviour as a printed control (89.6 deg of drift).
 
+## Wall-fixed UI
+
+    Godot --path . --headless --script res://tests/verify_ui_anchor.gd
+
+Panels must not move relative to the head while the camera does. Add `--copy`
+for the negative control, which reproduces the old copy-the-transform-each-frame
+behaviour and drifts 4.41 m.
+
 ## Stereo output
 
     Godot --path . -- --stereo 960 324 --capture shot.png --chapter 0

@@ -92,6 +92,8 @@ func _default_deck() -> Array[Chapter]:
 	# object far enough out to wreck the framing.
 	starlink.regimes = ["LEO"]
 	starlink.highlight_name = "STARLINK"
+	# Green: an operational constellation, not a hazard.
+	starlink.highlight_color = Color(0.36, 1.0, 0.52)
 	starlink.content_scale = 1.2
 	starlink.altitude_exaggeration = 2.0
 	out.append(starlink)
@@ -150,6 +152,7 @@ func apply(i: int, animate: bool = true) -> void:
 	index = posmod(i, chapters.size())
 	var c := chapters[index]
 
+	field.highlight_color = c.highlight_color
 	rig.content_scale = c.content_scale
 	field.altitude_exaggeration = c.altitude_exaggeration
 	field.point_size = c.point_size

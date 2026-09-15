@@ -89,6 +89,13 @@ func _sync_from_body() -> void:
 		azimuth = atan2(-d.x, -d.z)
 		elevation = clampf(asin(clampf(-d.y, -1.0, 1.0)), -1.45, 1.45)
 
+## The node the wall addon builds its virtual screen from. Anything that must
+## stay fixed on the physical wall should be a CHILD of this rather than copying
+## its transform every frame -- see main.gd:_attach_to_head().
+func head_node() -> Node3D:
+	return _pivot if _resolve() else null
+
+
 func head_transform() -> Transform3D:
 	if not _resolve():
 		return Transform3D(Basis.IDENTITY, Vector3(0.0, PIVOT_HEIGHT, 0.0))

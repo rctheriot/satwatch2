@@ -106,14 +106,20 @@ func _pick() -> void:
 func _clock_time() -> float:
 	return clock.now_unix if clock != null else 0.0
 
+## Parented to the head, not copied from it -- same reason as the panels. The
+## reticle sits on the wall plane so it fuses at the physical screen depth,
+## which is where it is comfortable to rest the eyes.
+func attach_to_head(head: Node3D) -> void:
+	if head == null or _reticle == null:
+		return
+	if _reticle.get_parent() != head:
+		_reticle.get_parent().remove_child(_reticle)
+		head.add_child(_reticle)
+	_reticle.transform = Transform3D(Basis(Vector3.RIGHT, PI / 2.0),
+		Vector3(0.0, 0.0, -CameraDirector.WALL_DISTANCE))
+
+
 func _process(_delta: float) -> void:
-	# The reticle rides the head so it stays centred on the wall, fused at the
-	# physical screen depth where it is comfortable to rest the eyes.
-	if camera != null:
-		var head := camera.head_transform()
-		_reticle.global_transform = Transform3D(
-			head.basis * Basis(Vector3.RIGHT, PI / 2.0),
-			head.origin - head.basis.z * CameraDirector.WALL_DISTANCE)
 	if selected < 0 or field == null:
 		return
 	# Labels must track their target's depth exactly. A label left at screen
