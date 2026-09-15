@@ -1,0 +1,163 @@
+# Orbital Density Wall
+
+Stereoscopic visualization of the tracked-object catalog for LAVA's 6 m display
+wall (Godot 4.7). A successor to the 2016 [SatelliteWatch](https://github.com/rctheriot/SatelliteWatch)
+Vive demo, rebuilt for a fixed, shared, ultra-wide stereo wall.
+
+The wall is the design constraint. It is not a headset: there is one correct
+viewing position, the audience stands, and nobody can walk through the scene.
+What this display does that a monitor cannot is make **the layered shell
+structure of Earth orbit legible in depth**. That is the demo; everything else
+is a chapter on top of it.
+
+## Quick start
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -r tools/requirements.txt
+.venv/bin/python tools/fetch_gp.py --source tleapi    # or --source celestrak
+.venv/bin/python tools/build_ephemeris.py
+/Applications/Godot.app/Contents/MacOS/Godot --path . --headless --import
+/Applications/Godot.app/Contents/MacOS/Godot --path .
+```
+
+Earth textures are not committed — see `assets/README.md`. Without them the
+globe falls back to flat shading and everything else still runs.
+
+## Controls
+
+The viewer never moves. Every control transforms the **content**.
+
+| Action | Gamepad | Keyboard / mouse |
+|---|---|---|
+| Orbit globe | Right stick | Drag LMB |
+| Zoom | Left stick Y | `W` / `S`, wheel |
+| Time rate | Shoulders | `[` / `]` |
+| Play / pause | A | `Space` |
+| Chapter | D-pad ←→ | `←` `→` |
+| Select under reticle | X | RMB |
+
+## Architecture notes
+
+These are the non-obvious constraints. Each one produced a bug during
+development that still looked plausible on screen.
+
+**The addon's virtual wall is head-relative.**
+`stereo_wall_display.gd:_update_stereo_cameras()` rebuilds the screen corners
+from the camera pivot every frame, so moving or turning the player shears the
+whole scene against a wall that is physically fixed. There is no fly-through.
+The addon is neutralised by zeroing `move_speed`, `look_sensitivity` and
+`controller_look_speed` in `main.tscn` — it is not forked — and
+`scripts/rig_controller.gd` drives an `EarthRig` instead.
+
+**All UI is world-space 3D.** The addon composites the two eye viewports into
+`CanvasLayer` 100 as side-by-side `TextureRect`s. A second 2D UI layer lands on
+one eye's half of the output window. Every panel is a `SubViewport` on a quad —
+see `scripts/ui/world_panel.gd`.
+
+**`display/window/stretch/mode` must stay `disabled`.** Any stretch mode
+rescales the compositing CanvasLayer against the project's base resolution.
+Verified: with `canvas_items`, a 1920x324 stereo window rendered both eyes into
+960x162 — still recognisably stereo, just small and in a corner.
+
+**Satellites stay in TEME; the Earth rotates by GMST(t).** TEME is SGP4's native
+frame. Rotating the globe instead of converting every satellite to ECEF is
+cheaper and sidesteps nutation and polar motion (sub-km, invisible here).
+
+**ECI → Godot is `(x, z, -y)`.** The obvious `(x, z, y)` is a reflection: every
+orbit silently runs retrograde and looks entirely plausible. Asserted in both
+`tools/build_ephemeris.py` and `tests/verify_frames.gd`.
+
+**Earth UV is derived, not taken from `SphereMesh`.** `earth.gdshader:geo_uv()`
+computes equirectangular UV from the mesh-local normal. Trusting the engine's UV
+convention puts every continent at a constant unknown longitude offset — the
+terminator is the right *shape*, just over the wrong ocean.
+
+**Scale is per-chapter.** At the LEO-tuned scale (0.75, centre 3.0 m) the GEO
+belt's near side sits 1.96 m *behind the viewer's head* and is culled. The
+pull-back from LEO to GEO is chapter 1 → 2 and is the best beat in the deck.
+
+**Stereo comfort is enforced, not documented.** `RigController` clamps all
+content to ≥ 1.5 m from the viewer. Parallax is `p = IOD·(1 − D/z)`: −33 mm at
+1.5 m (borderline), −81 mm at 1.0 m (unfusable for many viewers). Dolly and
+altitude exaggeration compound and are clamped jointly.
+
+**One comfort parameter is not covered by the tests.**
+`satellites.gdshader`'s `zoom_compensation` (0.55) makes point size vary with
+zoom, so apparent size no longer tracks distance exactly. Size is a monocular
+depth cue, and when it disagrees with disparity, fusion gets harder. It was
+tuned against single-eye captures, and `verify_stereo.gd` measures a centroid,
+not point size. Confirm it during the wall's 15-minute comfort pass alongside
+`eye_separation`.
+
+**Altitude exaggeration is labelled on screen** whenever it is not 1.0. At true
+scale the LEO shell sits ~1 % off the globe and the structure is invisible;
+overstating fidelity to this audience costs more than the demo can buy back.
+Same reason the provenance plate names the source, the epoch spread, and that
+SGP4 error grows to kilometres per day.
+
+## Data
+
+`tools/fetch_gp.py` caches CelesTrak GP data. CelesTrak enforces **one download
+per 2-hour update cycle** (HTTP 403 otherwise, repeat abuse → IP firewalled), so
+the script refuses locally rather than letting the server refuse us. CelesTrak
+was unreachable from the dev laptop entirely — DNS resolves, TCP times out — so
+`--source tleapi` pages a mirror serving the same elements.
+
+`tools/build_ephemeris.py` propagates with SGP4 into `data/ephemeris.bin`:
+a 32-byte header then sample-major float32 TEME positions in Earth radii,
+already mapped to Godot axes. Defaults to a 3-hour span at 30 s steps, which
+loops cleanly and covers one to two LEO revolutions. float32 rather than int16
+because GDScript has no bulk int16 decode, only per-element `decode_s16()`,
+while `PackedByteArray.to_float32_array()` is one engine call.
+
+The builder drops three classes of object and reports each separately:
+SGP4 errors (decayed or bad elements), anything beyond 8 R⊕ (off-scene), and
+element sets whose propagation contradicts their own mean elements. That last
+filter matters more than it sounds: a single junk object labelled LEO but
+propagating out to 8 R⊕ would drive the stereo comfort clamp and shrink the
+entire LEO chapter to accommodate content that should not be there.
+
+It also records, per object, the maximum radius actually ATTAINED in the window
+(`max_radius_re`) — not orbit apogee. The comfort clamp is driven by what is on
+screen; an HEO object near perigee for the whole span never reaches its apogee.
+
+Current build: 23,013 objects (20,757 LEO / 1,231 GEO / 673 HEO / 352 MEO),
+99 MB.
+
+**Export packaging:** `*.bin` and `*.json` are non-resource files and will
+silently vanish from a Windows export unless added to the export preset's
+non-resource file filter.
+
+## Performance
+
+M1 Max, full catalog, `-- --benchmark 6 --chapter 1`:
+
+| Window | Frame time | FPS | `update_positions` |
+|---|---|---|---|
+| 1920×648 (1.2 Mpix) | 8.09 ms | 123.7 | 7.61 ms (94 %) |
+| 4800×1288 (6.2 Mpix) | 8.15 ms | 122.8 | 7.65 ms (94 %) |
+
+Frame time is **flat across a 5× pixel range** — this is CPU-bound, not
+fill-bound. `SatelliteField.update_positions()` is now 94 % of the frame:
+20,757 instances interpolated and written to the MultiMesh buffer in GDScript.
+
+**This is the Phase B case, measured.** Moving interpolation to a vertex shader
+sampling a `Texture2DArray` (layer = time sample, texel = object) removes that
+7.6 ms and leaves the data path unchanged. Not needed at 123 FPS, but it is the
+first thing to do if the wall's hardware is slower than this laptop.
+
+An earlier build ran at 69 FPS. The difference was `RigController` recomputing
+the outermost-object radius every frame — 20k dictionary lookups per frame for a
+value that only changes on a filter or exaggeration change. Caching it in
+`SatelliteField.max_content_radius()` cost ~6.4 ms/frame. Worth knowing before
+reaching for the GPU path: measure which half of the frame is actually yours.
+
+Caveat: macOS clamped the test window to 5120×1288, so the wall's true
+9600×1620 (15.5 Mpix) was not reproducible here. Given zero fill sensitivity
+from 1.2 to 6.2 Mpix, the CPU bound should dominate there too — but confirm it
+on the wall.
+
+## Verification
+
+See `tests/README.md`. Both suites run headless and have been checked against a
+known-bad case, not just a passing one.

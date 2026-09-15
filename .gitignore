@@ -1,0 +1,9 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Generated ephemeris artifacts
+/data/ephemeris.bin
+/data/catalog.json
+/data/gp_cache/*.json
+.venv/
