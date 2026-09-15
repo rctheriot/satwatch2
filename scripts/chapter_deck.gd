@@ -16,6 +16,9 @@ func _ready() -> void:
 	if chapters.is_empty():
 		chapters = _default_deck()
 
+func _exit_tree() -> void:
+	pass
+
 ## Built in code rather than as .tres so the deck is reviewable in one place and
 ## survives a resource re-import. Scale/distance pairs here are not free
 ## parameters -- see the note on chapter 2.
@@ -26,16 +29,13 @@ func _default_deck() -> Array[Chapter]:
 	leo.title = "LOW EARTH ORBIT"
 	leo.subtitle = "Tracked objects below 2,000 km"
 	leo.regimes = ["LEO"]
-	leo.center_distance = 3.0
-	leo.rig_scale = 0.75
-	leo.altitude_exaggeration = 2.5
+	leo.rig_scale = 1.45
+	leo.altitude_exaggeration = 2.0
 	out.append(leo)
 
-	# Centre distances below are not free parameters: tests/verify_frames.gd
-	# asserts every chapter keeps its outermost visible object at least
-	# RigController.MIN_CONTENT_DISTANCE (1.5 m) from the viewer. Pushing a
-	# chapter wider without re-running that check will silently be corrected by
-	# the runtime clamp, so what reaches the wall is not what was authored.
+	# Chapters set scale only; distance is derived so that the nearest visible
+	# object always clears the stereo comfort floor. tests/verify_frames.gd
+	# asserts that for every chapter here.
 
 	# The pull-back. A LEO-tuned scale cannot hold MEO/GEO/HEO: at scale 0.75 the
 	# GEO ring has a 4.96 m radius against a 3.0 m centre distance, putting its
@@ -46,8 +46,7 @@ func _default_deck() -> Array[Chapter]:
 	geo.title = "THE FULL CATALOG"
 	geo.subtitle = "LEO shells to the geostationary belt"
 	geo.regimes = []
-	geo.center_distance = 4.1
-	geo.rig_scale = 0.30
+	geo.rig_scale = 0.40
 	geo.altitude_exaggeration = 1.0
 	geo.point_size = 0.0032
 	geo.transition_seconds = 5.0
@@ -61,8 +60,7 @@ func _default_deck() -> Array[Chapter]:
 			"GEO": "Fixed over one longitude",
 			"HEO": "Highly elliptical, long dwell at apogee"}[r]
 		c.regimes = [r]
-		c.center_distance = 4.1
-		c.rig_scale = 0.30
+		c.rig_scale = 1.45 if r == "LEO" else 0.40
 		c.altitude_exaggeration = 1.0
 		c.point_size = 0.0032
 		out.append(c)
@@ -75,8 +73,7 @@ func _default_deck() -> Array[Chapter]:
 	# object to ~15 Re -- through the viewer and out the back of the room.
 	starlink.regimes = ["LEO"]
 	starlink.highlight_name = "STARLINK"
-	starlink.center_distance = 3.4
-	starlink.rig_scale = 0.45
+	starlink.rig_scale = 1.2
 	starlink.altitude_exaggeration = 2.0
 	starlink.point_size = 0.0030
 	out.append(starlink)

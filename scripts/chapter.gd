@@ -9,8 +9,12 @@ extends Resource
 @export var regimes: Array[String] = []
 ## Objects whose name contains this are highlighted, everything else dimmed.
 @export var highlight_name: String = ""
-@export var center_distance: float = 3.0
-@export var rig_scale: float = 0.75
+## Minimum distance from viewer to rig origin. 0 means "derive it entirely from
+## scale and content extent" (RigController.safe_center_distance), which is what
+## most chapters want -- the framing then stays correct even if the catalog's
+## outermost object changes between builds.
+@export var center_distance: float = 0.0
+@export var rig_scale: float = 1.6
 @export var yaw: float = 0.0
 @export var pitch: float = 0.2
 @export var altitude_exaggeration: float = 3.0

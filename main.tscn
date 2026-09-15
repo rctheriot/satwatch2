@@ -1,7 +1,77 @@
-[gd_scene load_steps=3 format=3 uid="uid://d4m7g1ny1xiu3"]
+[gd_scene load_steps=21 format=3 uid="uid://d4m7g1ny1xiu3"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://d2mxktnyjcc1a" path="res://addons/stereo_wall_display/stereo_wall_display.gd" id="2_stereo"]
+[ext_resource type="Script" path="res://scripts/sim_clock.gd" id="3_clock"]
+[ext_resource type="Script" path="res://scripts/rig_controller.gd" id="4_rig"]
+[ext_resource type="Script" path="res://scripts/satellite_field.gd" id="5_field"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6_hud"]
+[ext_resource type="Script" path="res://scripts/selection.gd" id="7_sel"]
+[ext_resource type="Script" path="res://scripts/chapter_deck.gd" id="8_deck"]
+[ext_resource type="Shader" path="res://shaders/earth.gdshader" id="9_earth"]
+[ext_resource type="Shader" path="res://shaders/atmosphere.gdshader" id="10_atmo"]
+[ext_resource type="Shader" path="res://shaders/satellites.gdshader" id="11_sat"]
+[ext_resource type="Shader" path="res://shaders/starfield.gdshader" id="12_sky"]
+
+[sub_resource type="SphereMesh" id="SphereMesh_earth"]
+radius = 1.0
+height = 2.0
+radial_segments = 128
+rings = 64
+
+[sub_resource type="SphereMesh" id="SphereMesh_atmo"]
+radius = 1.025
+height = 2.05
+radial_segments = 96
+rings = 48
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_earth"]
+shader = ExtResource("9_earth")
+shader_parameter/sun_direction = Vector3(1, 0, 0)
+shader_parameter/day_gain = 1.15
+shader_parameter/night_gain = 1.35
+shader_parameter/terminator_softness = 0.1
+shader_parameter/ambient_floor = 0.02
+shader_parameter/ocean_specular = 0.6
+shader_parameter/longitude_offset_deg = 0.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_atmo"]
+shader = ExtResource("10_atmo")
+shader_parameter/rim_color = Color(0.32, 0.6, 1, 1)
+shader_parameter/sun_direction = Vector3(1, 0, 0)
+shader_parameter/rim_power = 2.6
+shader_parameter/intensity = 0.85
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sat"]
+shader = ExtResource("11_sat")
+shader_parameter/leo_color = Color(0.36, 0.78, 1, 1)
+shader_parameter/meo_color = Color(0.55, 1, 0.62, 1)
+shader_parameter/geo_color = Color(1, 0.78, 0.31, 1)
+shader_parameter/heo_color = Color(1, 0.45, 0.55, 1)
+shader_parameter/brightness = 1.2
+shader_parameter/rig_scale = 1.0
+shader_parameter/zoom_compensation = 0.55
+shader_parameter/min_pixel_size = 1.7
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
+shader = ExtResource("12_sky")
+shader_parameter/density = 140.0
+shader_parameter/brightness = 0.85
+shader_parameter/coverage = 0.045
+shader_parameter/star_size = 0.13
+shader_parameter/space_tint = Color(0.008, 0.011, 0.022, 1)
+
+[sub_resource type="Sky" id="Sky_stars"]
+sky_material = SubResource("ShaderMaterial_sky")
+
+[sub_resource type="Environment" id="Environment_space"]
+background_mode = 2
+sky = SubResource("Sky_stars")
+ambient_light_source = 3
+ambient_light_color = Color(0.06, 0.08, 0.12, 1)
+ambient_light_energy = 0.18
+tonemap_mode = 3
+glow_enabled = false
 
 [node name="Main" type="Node3D"]
 script = ExtResource("1_main")
@@ -16,3 +86,45 @@ controller_look_speed = 0.0
 start_position = Vector3(0, 0, 0)
 start_rotation_y = 0.0
 metadata/_custom_type_script = "uid://d2mxktnyjcc1a"
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_space")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+light_energy = 0.9
+shadow_enabled = false
+
+[node name="SimClock" type="Node" parent="."]
+script = ExtResource("3_clock")
+rate_index = 2
+
+[node name="EarthRig" type="Node3D" parent="."]
+script = ExtResource("4_rig")
+orbit_speed = 1.6
+dolly_speed = 0.9
+center_distance = 3.0
+rig_scale = 0.75
+
+[node name="EarthMesh" type="MeshInstance3D" parent="EarthRig"]
+mesh = SubResource("SphereMesh_earth")
+material_override = SubResource("ShaderMaterial_earth")
+
+[node name="Atmosphere" type="MeshInstance3D" parent="EarthRig"]
+mesh = SubResource("SphereMesh_atmo")
+material_override = SubResource("ShaderMaterial_atmo")
+
+[node name="SatelliteField" type="MultiMeshInstance3D" parent="EarthRig"]
+material_override = SubResource("ShaderMaterial_sat")
+script = ExtResource("5_field")
+point_size = 0.0035
+altitude_exaggeration = 2.0
+
+[node name="UIRig" type="Node3D" parent="."]
+script = ExtResource("6_hud")
+
+[node name="Selection" type="Node3D" parent="."]
+script = ExtResource("7_sel")
+
+[node name="ChapterDeck" type="Node" parent="."]
+script = ExtResource("8_deck")

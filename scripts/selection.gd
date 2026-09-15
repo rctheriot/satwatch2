@@ -17,6 +17,7 @@ var field: SatelliteField
 var rig: RigController
 var catalog: CatalogStore
 var head_position: Vector3 = Vector3(0.0, 1.64, 0.0)
+var clock: SimClock
 
 var selected: int = -1
 var _marker: MeshInstance3D
@@ -106,8 +107,7 @@ func _pick() -> void:
 	selection_changed.emit(best)
 
 func _clock_time() -> float:
-	var c := get_parent().get_node_or_null("SimClock") as SimClock
-	return c.now_unix if c != null else 0.0
+	return clock.now_unix if clock != null else 0.0
 
 func _process(_delta: float) -> void:
 	if selected < 0 or field == null:

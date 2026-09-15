@@ -20,11 +20,13 @@ first added, 4 of 7 chapters failed, one at -6.96 m.
 
 ## Stereo output
 
-    Godot --path . res://tests/stereo_check.tscn -- --capture shot.png --chapter 0
+    Godot --path . -- --stereo 960 324 --capture shot.png --chapter 0
     Godot --path . --headless --script res://tests/verify_stereo.gd -- shot.png
 
-`tests/stereo_check.tscn` is `main.tscn` with `edit_mode = false` and a
-960x324 per-eye resolution, giving a 1920x324 window.
+`--stereo W H` flips the wall addon into stereo output at runtime (its
+`edit_mode` setter rebuilds), giving a 2W x H window. There is deliberately no
+separate stereo scene: a duplicate .tscn has to mirror the whole node tree and
+rots the moment `main.tscn` changes, which is what happened to the earlier one.
 
 **The test resolution must stay aspect-matched to the wall.**
 `_apply_offaxis_projection()` sets only the frustum *height*; width comes from
@@ -37,8 +39,8 @@ positive, which is correct for content behind the wall plane. Always pass
 `--chapter` explicitly: parallax magnitude depends on the framing, so omitting
 it makes the number non-reproducible.
 
-Checked against a known-bad case, not just a passing one: rendering with
-`swap_eyes = true` gives -4.089 px and the check fails. Reversed eyes still look
+Checked against a known-bad case, not just a passing one -- add `--swap-eyes`
+and the same capture gives negative parallax and the check fails. Reversed eyes still look
 like stereo -- depth is simply inverted, and viewers report eye strain rather
 than "the image is backwards" -- so a test that only ever passes is worthless
 here.

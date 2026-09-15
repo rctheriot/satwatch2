@@ -27,6 +27,8 @@ globe falls back to flat shading and everything else still runs.
 
 The viewer never moves. Every control transforms the **content**.
 
+Zoom range: the globe spans roughly 27 % to 56 % of the wall width.
+
 | Action | Gamepad | Keyboard / mouse |
 |---|---|---|
 | Orbit globe | Right stick | Drag LMB |
@@ -35,6 +37,23 @@ The viewer never moves. Every control transforms the **content**.
 | Play / pause | A | `Space` |
 | Chapter | D-pad ←→ | `←` `→` |
 | Select under reticle | X | RMB |
+
+## Scene structure
+
+`main.tscn` holds the real node tree, editable in the Godot editor — EarthRig,
+EarthMesh, Atmosphere, SatelliteField, UIRig, Selection, SimClock, ChapterDeck,
+WorldEnvironment and Sun, with their meshes, shader materials and exported
+properties set there. `scripts/main.gd` only wires them together and drives the
+per-frame updates.
+
+Two things are still created at runtime, because they are data-driven and
+authoring them would just mean they drift from the builder output:
+
+- the `MultiMesh` inside `SatelliteField` (instance count = catalog size)
+- the `SubViewport` panels inside `UIRig` (content depends on the catalog)
+
+Chapter presets live in `scripts/chapter_deck.gd:_default_deck()` rather than as
+`.tres` files, so the whole deck is reviewable in one place.
 
 ## Architecture notes
 
@@ -80,6 +99,37 @@ pull-back from LEO to GEO is chapter 1 → 2 and is the best beat in the deck.
 content to ≥ 1.5 m from the viewer. Parallax is `p = IOD·(1 − D/z)`: −33 mm at
 1.5 m (borderline), −81 mm at 1.0 m (unfusable for many viewers). Dolly and
 altitude exaggeration compound and are clamped jointly.
+
+**Zoom pushes content away rather than being capped.** The first design fixed
+the rig distance and clamped scale for comfort, which capped zoom at roughly the
+default framing — at the LEO chapter the maximum safe scale was 0.838 against a
+default of 0.75, so zoom did essentially nothing. Now
+`RigController.safe_center_distance()` derives distance from scale, so zooming in
+moves the content back by exactly enough to hold the near clearance. Ordinary
+dolly-zoom: the globe still grows (apparent half-angle rises toward
+`atan(1/r)`), the clearance never shrinks, and there is no cap.
+
+**The comfort target is set by window violations, not by fusion.** Once the
+globe is large enough to be worth looking at, the shell around it necessarily
+overruns a 2.04 m tall wall and gets cut by the frame edge. Cropping content
+*behind* the screen is just looking through a window; cropping content that
+floats *in front* of it is the contradiction that hurts. So the nearest object
+sits at ~2.05 m — about −7 mm of parallax, barely in front of the wall plane —
+which makes the overrun harmless. The 1.5 m fusion floor remains as a hard stop.
+
+**Points have a minimum projected size** (`min_pixel_size`, 1.7 px). Below about
+a pixel, a point lands on a sample or misses it depending on sub-pixel position,
+so the field blinks as it moves — and because the two eyes sample from slightly
+different positions, they blink *independently*, which is retinal rivalry rather
+than depth. The enlargement is energy-normalised (alpha scales by 1/k²), because
+holding 20k LEO points at the floor while zoomed out otherwise deposits far more
+light than the geometry would and washes the globe out to white.
+
+**The mouse cursor is released explicitly.** The addon captures it in
+`_initialize()` to drive mouse-look; since `look_sensitivity` is zeroed, the
+capture only hid the cursor and left no way to see where a click would land.
+`main.gd:_release_mouse()` undoes it — child `_ready()` runs before parent
+`_ready()`, so this reliably wins.
 
 **One comfort parameter is not covered by the tests.**
 `satellites.gdshader`'s `zoom_compensation` (0.55) makes point size vary with

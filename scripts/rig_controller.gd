@@ -6,11 +6,9 @@ extends Node3D
 ## every frame, so the wall is head-RELATIVE. Moving or turning the player
 ## therefore shears the whole scene against a wall that is physically fixed.
 ## The addon is neutralised by zeroing move_speed / look_sensitivity /
-## controller_look_speed in the inspector; this node then drives the content.
+## controller_look_speed in main.tscn; this node drives the content instead.
 ##
-## This node also owns the stereo comfort clamp. That is not documentation --
-## see _max_safe_scale(). Dolly and altitude exaggeration compound, and either
-## one alone can push content through the fusion floor.
+## This node also owns the stereo comfort clamp -- see _effective_distance().
 
 ## Physical wall geometry, from the StereoWallDisplay defaults.
 const WALL_DISTANCE := 2.282        ## Viewer to wall plane, metres.
@@ -23,11 +21,27 @@ const EYE_SEPARATION := 0.063       ## Interocular distance, metres.
 const MIN_CONTENT_DISTANCE := 1.5
 
 @export var orbit_speed := 1.6
-@export var dolly_speed := 0.9
-@export var center_distance := 3.0      ## Rig origin distance ahead of the viewer.
+@export var dolly_speed := 1.4
+## Preferred distance from the viewer to the rig origin. A FLOOR, not a fixed
+## value -- see _effective_distance().
+@export var center_distance := 3.0
 @export var rig_scale := 0.75
 @export var min_scale := 0.05
-@export var max_scale := 2.0
+## Zoom is not limited by comfort (distance absorbs that), so this is only a
+## sanity stop. The globe reaches an apparent-size asymptote long before it.
+@export var max_scale := 12.0
+## Extra clearance beyond MIN_CONTENT_DISTANCE, putting the nearest object at
+## about 2.05 m -- roughly 23 cm in front of the wall plane, i.e. -7 mm of
+## parallax.
+##
+## This is set by the WINDOW VIOLATION constraint, not by fusion comfort. Once
+## the globe is large enough to be worth looking at, the orbital shell around it
+## necessarily overruns a 2.04 m tall wall, so it WILL be cut by the frame edge.
+## Cropping content that sits behind the screen is fine -- that is just looking
+## through a window. Cropping content that floats in front of the screen is the
+## contradiction that makes viewers' eyes hurt. Keeping the near limit to a few
+## millimetres of negative parallax means the overrun is harmless.
+@export var comfort_margin := 0.55
 
 var field: SatelliteField
 var head_position: Vector3 = Vector3(0.0, 1.64, 0.0)
@@ -40,42 +54,52 @@ var _dragging := false
 func _ready() -> void:
 	set_process(true)
 
-## Largest content radius in Earth radii, after exaggeration -- the thing that
-## actually decides how close the field comes to the viewer's face. The field
-## caches this; it only changes on a filter or exaggeration change.
+## Largest content radius in Earth radii, after exaggeration. The field caches
+## this; it only changes on a filter or exaggeration change.
 func _content_radius() -> float:
 	if field == null or field.catalog.is_empty() or field.active.is_empty():
 		return 1.0
 	return field.max_content_radius()
 
-## Scale at which the nearest content sits exactly on MIN_CONTENT_DISTANCE.
-func _max_safe_scale() -> float:
-	var r := _content_radius()
-	if r <= 0.0001:
-		return max_scale
-	return maxf(min_scale, (center_distance - MIN_CONTENT_DISTANCE) / r)
+## Distance from viewer to rig origin, guaranteeing comfort by CONSTRUCTION.
+##
+## The earlier design fixed the distance and clamped the scale, which capped
+## zoom at roughly the default framing -- at the LEO chapter the maximum safe
+## scale was 0.838 against a default of 0.75, so zoom did almost nothing.
+##
+## Instead, zooming in pushes the content further away by exactly enough to keep
+## the nearest object outside the floor. That is an ordinary dolly-zoom: the
+## globe still grows on screen (apparent half-angle atan(s / (floor + r*s)),
+## rising toward atan(1/r)), while the near clearance never shrinks.
+static func safe_center_distance(preferred: float, scale: float,
+		content_radius: float, margin: float) -> float:
+	return maxf(preferred, MIN_CONTENT_DISTANCE + margin + content_radius * scale)
+
+func _effective_distance() -> float:
+	return safe_center_distance(center_distance, rig_scale, _content_radius(),
+		comfort_margin)
 
 func clamp_scale(s: float) -> float:
-	return clampf(s, min_scale, minf(max_scale, _max_safe_scale()))
+	return clampf(s, min_scale, max_scale)
 
 ## Screen parallax in millimetres for content at distance z. Negative is in
-## front of the wall. Used by the provenance/debug readout.
+## front of the wall.
 func parallax_mm(z: float) -> float:
 	if z <= 0.01:
 		return -999.0
 	return EYE_SEPARATION * (1.0 - WALL_DISTANCE / z) * 1000.0
 
 func nearest_content_distance() -> float:
-	return center_distance - _content_radius() * rig_scale
+	return _effective_distance() - _content_radius() * rig_scale
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			_dragging = event.pressed
 		elif event.button_index == MOUSE_BUTTON_WHEEL_UP and event.pressed:
-			rig_scale = clamp_scale(rig_scale * 1.06)
+			rig_scale = clamp_scale(rig_scale * 1.10)
 		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN and event.pressed:
-			rig_scale = clamp_scale(rig_scale / 1.06)
+			rig_scale = clamp_scale(rig_scale / 1.10)
 	elif event is InputEventMouseMotion and _dragging:
 		_orbit(-event.relative.x * 0.004, -event.relative.y * 0.004)
 
@@ -93,27 +117,26 @@ func _process(delta: float) -> void:
 
 	var dolly := Input.get_axis("rig_zoom_out", "rig_zoom_in")
 	if absf(dolly) > 0.001:
-		rig_scale = clamp_scale(rig_scale * (1.0 + dolly * dolly_speed * delta))
+		# Exponential so the feel is constant across three orders of scale.
+		rig_scale = clamp_scale(rig_scale * exp(dolly * dolly_speed * delta))
 
 	_apply()
 
 func _apply() -> void:
 	rig_scale = clamp_scale(rig_scale)
 	var forward := Basis(Vector3.UP, head_yaw) * Vector3(0.0, 0.0, -1.0)
-	var origin := head_position + forward * center_distance
+	var origin := head_position + forward * _effective_distance()
 	var basis := Basis(Vector3.UP, _yaw + head_yaw) * Basis(Vector3.RIGHT, _pitch)
 	transform = Transform3D(basis.scaled(Vector3.ONE * rig_scale), origin)
 
-## Move to a chapter preset without ever passing through an unsafe state.
+## Move to a chapter preset. Distance is derived, so the tween cannot pass
+## through an unsafe state even mid-transition.
 func goto(p_center_distance: float, p_scale: float, p_yaw: float, p_pitch: float,
 		duration: float) -> Tween:
 	var tw := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC) \
 		.set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(self, "center_distance", p_center_distance, duration)
-	# Clamp the target too: a chapter preset is authored data and can be wrong.
-	var safe: float = clampf(p_scale, min_scale,
-		minf(max_scale, (p_center_distance - MIN_CONTENT_DISTANCE) / _content_radius()))
-	tw.tween_property(self, "rig_scale", safe, duration)
+	tw.tween_property(self, "rig_scale", clamp_scale(p_scale), duration)
 	tw.tween_property(self, "_yaw", p_yaw, duration)
 	tw.tween_property(self, "_pitch", p_pitch, duration)
 	return tw

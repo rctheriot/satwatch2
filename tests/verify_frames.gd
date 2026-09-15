@@ -43,8 +43,8 @@ func _ok(label: String, pass_: bool, detail: String) -> void:
 ## wrong, the failure is viewer discomfort at a briefing, not a visible bug.
 ## Nothing else in the suite exercises this.
 func _check_chapter_clearance(catalog: CatalogStore) -> void:
-	print("\nChapter framing respects the %.2f m stereo comfort floor:"
-		% RigController.MIN_CONTENT_DISTANCE)
+	print("\nChapter framing: fusion floor %.2f m, and frame-edge cropping only "
+		% RigController.MIN_CONTENT_DISTANCE + "near the wall plane:")
 	var deck := ChapterDeck.new()
 	var chapters: Array[Chapter] = deck._default_deck()
 	for c in chapters:
@@ -54,10 +54,22 @@ func _check_chapter_clearance(catalog: CatalogStore) -> void:
 				continue
 			var r: float = float(o.get("max_radius_re", 1.0))
 			max_r = maxf(max_r, 1.0 + (r - 1.0) * c.altitude_exaggeration)
-		var nearest := c.center_distance - max_r * c.rig_scale
-		_ok("%-16s" % c.title, nearest >= RigController.MIN_CONTENT_DISTANCE,
-			"nearest content %.3f m (outermost %.2f Re at scale %.2f, centre %.2f m)"
-				% [nearest, max_r, c.rig_scale, c.center_distance])
+		# Same derivation the runtime uses, so this checks the authored chapter
+		# rather than re-implementing the rule and agreeing with itself.
+		var dist := RigController.safe_center_distance(
+			c.center_distance, c.rig_scale, max_r, 0.55)
+		var nearest := dist - max_r * c.rig_scale
+		var globe_deg := 2.0 * rad_to_deg(atan(c.rig_scale / dist))
+		# Parallax at the nearest point. The shell overruns a 2.04 m wall in
+		# every chapter worth looking at, so it is always cut by the frame edge;
+		# what keeps that harmless is the cut content sitting near the wall
+		# plane rather than floating well in front of it.
+		var p_mm := RigController.EYE_SEPARATION \
+			* (1.0 - RigController.WALL_DISTANCE / nearest) * 1000.0
+		var ok := nearest >= RigController.MIN_CONTENT_DISTANCE and p_mm > -12.0
+		_ok("%-16s" % c.title, ok,
+			"nearest %.2f m (%+.1f mm parallax), centre %.2f m, globe %.0f deg"
+				% [nearest, p_mm, dist, globe_deg])
 	deck.free()
 
 ## Right ascension / declination of a point in the inertial (Godot-mapped TEME)

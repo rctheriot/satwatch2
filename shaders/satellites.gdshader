@@ -20,6 +20,13 @@ uniform float rig_scale = 1.0;
 // solid additive disc that washes the globe out to white. Partial compensation
 // keeps them visible without letting them fuse.
 uniform float zoom_compensation : hint_range(0.0, 1.0) = 0.55;
+// Minimum projected size, in pixels. Below about one pixel a point lands on a
+// sample or misses it depending on sub-pixel position, so as the field moves
+// each point blinks on and off -- and because the two eyes sample from slightly
+// different positions, they blink INDEPENDENTLY, which is retinal rivalry
+// rather than depth. Enforcing a floor here trades exact size for a stable
+// image, which is the right trade for markers.
+uniform float min_pixel_size : hint_range(0.0, 6.0) = 1.7;
 
 varying flat vec4 v_color;
 
@@ -43,6 +50,23 @@ void vertex() {
 	// stereo depth of the point it marks.
 	vec3 center_view = (MODELVIEW_MATRIX * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
 	float s = size * pow(max(rig_scale, 0.0001), -zoom_compensation);
+
+	// Convert world size to pixels at this depth and raise it if it would fall
+	// under the floor. PROJECTION_MATRIX[0][0] is the horizontal NDC-per-view
+	// ratio, so world -> pixels is that times half the viewport width, over depth.
+	float depth = max(-center_view.z, 0.0001);
+	float px_per_world = PROJECTION_MATRIX[0][0] * VIEWPORT_SIZE.x * 0.5 / depth;
+	float px = s * px_per_world;
+	if (px < min_pixel_size) {
+		float k = min_pixel_size / max(px, 0.0001);   // how much we enlarged it
+		s = min_pixel_size / max(px_per_world, 0.0001);
+		// Enlarging by k covers k^2 more area, so fade by 1/k^2 to keep the
+		// point's total contribution constant. Without this, holding 20k LEO
+		// points at the floor while zoomed out deposits far more light than the
+		// real geometry would and the globe washes out to white. The floor keeps
+		// the fade from going invisible.
+		v_color.a *= clamp(1.0 / (k * k), 0.10, 1.0);
+	}
 	POSITION = PROJECTION_MATRIX * vec4(center_view + vec3(VERTEX.xy * s, 0.0), 1.0);
 }
 

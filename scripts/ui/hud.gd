@@ -10,9 +10,14 @@ extends Node3D
 ##
 ## Panels sit at z = -2.45 m, just BEHIND the wall plane at 2.282 m, so they
 ## carry mild positive parallax and never risk a window violation at the edges.
+##
+## Satellites nearer than 2.45 m correctly draw in front of a panel and farther
+## ones are correctly occluded by it -- the panels are opaque and write depth,
+## and the additive point shader depth-TESTS even though it does not depth-WRITE.
+## That reads as consistent depth rather than as UI being overdrawn.
 
 const PANEL_Z := -2.45
-const PANEL_X := 2.05
+const PANEL_X := 2.22
 const TOP_Y := 2.05
 const BOTTOM_TOP_EDGE := 1.43   ## Bottom panels are top-aligned here.
 
@@ -31,16 +36,16 @@ var _rate_label: Label
 var _exaggeration_label: Label
 
 func build(catalog: CatalogStore) -> void:
-	var top := Vector2(1.70, 1.05)
+	var top := Vector2(1.52, 1.05)
 	left = _make_panel(top, Vector3(-PANEL_X, TOP_Y, PANEL_Z), _build_left(catalog))
 	right = _make_panel(top, Vector3(PANEL_X, TOP_Y, PANEL_Z), _build_right())
 
-	var time_size := Vector2(1.70, 0.30)
+	var time_size := Vector2(1.52, 0.30)
 	time_bar = _make_panel(time_size,
 		Vector3(-PANEL_X, BOTTOM_TOP_EDGE - time_size.y * 0.5, PANEL_Z),
 		_build_time_bar())
 
-	var prov_size := Vector2(1.70, 0.62)
+	var prov_size := Vector2(1.52, 0.68)
 	provenance = _make_panel(prov_size,
 		Vector3(PANEL_X, BOTTOM_TOP_EDGE - prov_size.y * 0.5, PANEL_Z),
 		_build_provenance(catalog))
