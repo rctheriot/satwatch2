@@ -18,6 +18,15 @@ so a bad chapter is silently corrected rather than crashing -- meaning the
 authored framing quietly would not be what reaches the wall. When this check was
 first added, 4 of 7 chapters failed, one at -6.96 m.
 
+## Lighting frame
+
+    Godot --path . --headless --script res://tests/verify_lighting.gd
+
+Asserts the sun direction expressed in the content's own frame does not change
+when the rig rotates. If it does, dragging appears to change the time of day --
+a very plausible-looking bug, since the terminator still has the right shape.
+Includes the pre-fix behaviour as a printed control (89.6 deg of drift).
+
 ## Stereo output
 
     Godot --path . -- --stereo 960 324 --capture shot.png --chapter 0
@@ -47,6 +56,11 @@ here.
 
 Also confirm by eye: two distinct eye images side by side, and nothing in front
 of the wall plane touching a frame edge.
+
+`verify_frames.gd` prints the parallax range per chapter (~49 mm / 39 px at the
+LEO framing). What it cannot check is FALSE MATCHING in the dense field -- see
+the README section on that. It is perceptual, so the wall is the only place to
+settle it.
 
 ## Only on the wall (Windows)
 

@@ -131,6 +131,52 @@ capture only hid the cursor and left no way to see where a click would land.
 `main.gd:_release_mouse()` undoes it — child `_ready()` runs before parent
 `_ready()`, so this reliably wins.
 
+**Rotating the content must carry the lighting with it.** The wall is fixed, so
+"orbiting the camera" is simulated by turning the content — which is only
+equivalent to a real orbit if *everything* in the inertial frame turns together.
+`sun_direction()` is an inertial vector and the Earth shader dots it against a
+world-space normal that already carries the rig rotation, so passing the raw
+vector left the sun behind: dragging slid the terminator across the continents
+and the globe appeared to change time of day. `main.gd` now rotates the sun into
+world space with the rig, and samples the starfield through the inverse rotation
+so the stars sweep past as they would if the viewer were really moving.
+`tests/verify_lighting.gd` asserts this (drift 0.000002° versus 89.6° for the
+old behaviour).
+
+## Does a field of points actually read in stereo?
+
+Yes, and the numbers are in `tests/verify_frames.gd` output. At the LEO chapter:
+
+| Feature | Distance | Parallax | On wall |
+|---|---|---|---|
+| Nearest shell point | 2.05 m | −7.1 mm | −5.7 px |
+| Globe near limb | 2.96 m | +14.4 mm | +11.5 px |
+| Globe centre | 4.41 m | +30.4 mm | +24.1 px |
+| Farthest shell point | 6.77 m | +41.8 mm | +33.2 px |
+
+**49 mm of disparity range, 39 px per eye.** The stereo detection threshold is
+about 10 arcsec, which at 2.282 m is roughly 0.01 mm of parallax — so the scene
+spans thousands of times the threshold. The globe alone is 19 px limb-to-limb.
+Depth is not the scarce resource here.
+
+The real risk with a dense point field is the opposite problem: **false
+matching**. The shell projects to 2.89 m wide carrying ~20k points, giving a
+mean on-screen spacing of ~14 px against a 39 px disparity range — so a point's
+true partner in the other eye is frequently *farther away than its nearest
+neighbour*. With interchangeable dots that is the classic wallpaper condition:
+the visual system pairs a point in one eye with the wrong point in the other and
+either fuses phantom depth or fails to settle.
+
+The mitigation is `SatelliteField._jitter()`: stable per-object size and
+brightness variation, seeded from NORAD ID so it is identical in both eyes,
+across frames, and across rebuilds. Correlating size with brightness reads as a
+natural magnitude spread and makes each point more distinctive than varying
+either alone. Regime colour already separates the four buckets, but within LEO
+all 20k objects would otherwise be identical.
+
+This is a perceptual property, so it cannot be settled off the wall — it is the
+main thing to look for in the comfort pass.
+
 **One comfort parameter is not covered by the tests.**
 `satellites.gdshader`'s `zoom_compensation` (0.55) makes point size vary with
 zoom, so apparent size no longer tracks distance exactly. Size is a monocular

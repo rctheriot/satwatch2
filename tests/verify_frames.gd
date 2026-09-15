@@ -7,6 +7,12 @@ extends SceneTree
 ## longitude offset between the Earth texture and the satellites above it.
 
 const RE_KM := 6378.137
+## Per-eye pixel density: 4800 px across the 6.047 m wall.
+const PX_PER_MM := 4800.0 / 6047.0
+
+static func _parallax_mm(z: float) -> float:
+	return RigController.EYE_SEPARATION \
+		* (1.0 - RigController.WALL_DISTANCE / z) * 1000.0
 
 var failures := 0
 
@@ -43,8 +49,8 @@ func _ok(label: String, pass_: bool, detail: String) -> void:
 ## wrong, the failure is viewer discomfort at a briefing, not a visible bug.
 ## Nothing else in the suite exercises this.
 func _check_chapter_clearance(catalog: CatalogStore) -> void:
-	print("\nChapter framing: fusion floor %.2f m, and frame-edge cropping only "
-		% RigController.MIN_CONTENT_DISTANCE + "near the wall plane:")
+	print("\nChapter framing and stereo depth (fusion floor %.2f m):"
+		% RigController.MIN_CONTENT_DISTANCE)
 	var deck := ChapterDeck.new()
 	var chapters: Array[Chapter] = deck._default_deck()
 	for c in chapters:
@@ -64,12 +70,18 @@ func _check_chapter_clearance(catalog: CatalogStore) -> void:
 		# every chapter worth looking at, so it is always cut by the frame edge;
 		# what keeps that harmless is the cut content sitting near the wall
 		# plane rather than floating well in front of it.
-		var p_mm := RigController.EYE_SEPARATION \
-			* (1.0 - RigController.WALL_DISTANCE / nearest) * 1000.0
-		var ok := nearest >= RigController.MIN_CONTENT_DISTANCE and p_mm > -12.0
+		var p_near := _parallax_mm(nearest)
+		var p_far := _parallax_mm(dist + max_r * c.rig_scale)
+		# Disparity RANGE is what actually produces depth. Human stereo threshold
+		# is ~10 arcsec, which at the wall is ~0.01 mm of parallax, so anything
+		# above a millimetre or two is richly stereoscopic.
+		var range_mm := p_far - p_near
+		var range_px := range_mm * PX_PER_MM
+		var ok := nearest >= RigController.MIN_CONTENT_DISTANCE \
+			and p_near > -12.0 and range_mm > 5.0
 		_ok("%-16s" % c.title, ok,
-			"nearest %.2f m (%+.1f mm parallax), centre %.2f m, globe %.0f deg"
-				% [nearest, p_mm, dist, globe_deg])
+			"globe %.0f deg, parallax %+.1f..%+.1f mm, depth range %.0f mm (%.0f px)"
+				% [globe_deg, p_near, p_far, range_mm, range_px])
 	deck.free()
 
 ## Right ascension / declination of a point in the inertial (Godot-mapped TEME)

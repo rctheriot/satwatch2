@@ -35,6 +35,7 @@ var catalog := CatalogStore.new()
 var _earth_material: ShaderMaterial
 var _atmo_material: ShaderMaterial
 var _sat_material: ShaderMaterial
+var _sky_material: ShaderMaterial
 var _ready_ok := false
 
 func _ready() -> void:
@@ -45,6 +46,8 @@ func _ready() -> void:
 	_earth_material = earth.material_override as ShaderMaterial
 	_atmo_material = atmosphere.material_override as ShaderMaterial
 	_sat_material = field.material_override as ShaderMaterial
+	var env: Environment = $WorldEnvironment.environment
+	_sky_material = env.sky.sky_material as ShaderMaterial
 	_apply_earth_textures()
 
 	if store.load_from(EPHEMERIS_PATH) != OK or catalog.load_from(CATALOG_PATH) != OK:
@@ -153,11 +156,26 @@ func _process(_delta: float) -> void:
 	# the field stays in TEME, which is what SGP4 actually produces.
 	earth.rotation.y = clock.gmst()
 
-	var sun := clock.sun_direction()
+	# The wall is fixed, so "orbiting the camera" has to be done by rotating the
+	# content. That is only equivalent to a real orbit if EVERYTHING in the
+	# inertial frame turns together -- including the sun and the stars.
+	#
+	# sun_direction() is an inertial vector, and the Earth shader dots it against
+	# a WORLD-space normal that already carries the rig's rotation. Passing the
+	# raw vector therefore left the sun behind in world space, so dragging the
+	# globe slid the terminator across the continents and appeared to change the
+	# time of day. Rotating it into world space with the rig fixes that: drag now
+	# reads as moving around a fixed, correctly-lit Earth.
+	var frame := rig.global_transform.basis.orthonormalized()
+	var sun := frame * clock.sun_direction()
 	_earth_material.set_shader_parameter("sun_direction", sun)
 	_atmo_material.set_shader_parameter("sun_direction", sun)
 	_sat_material.set_shader_parameter("rig_scale", rig.rig_scale)
 	sun_light.look_at_from_position(sun * 50.0, Vector3.ZERO, Vector3.UP)
+	# Same reasoning for the starfield: sampling by the inverse rig rotation
+	# pins the stars to the inertial frame, so they sweep past as you orbit
+	# instead of sitting fixed behind a turning Earth.
+	_sky_material.set_shader_parameter("frame_inverse", Basis(frame).inverse())
 
 	hud.set_time(clock.utc_string(), clock.rate_label())
 

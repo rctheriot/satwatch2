@@ -41,9 +41,19 @@ void vertex() {
 	float regime = INSTANCE_CUSTOM.x;
 	float highlight = INSTANCE_CUSTOM.y;
 	float size = INSTANCE_CUSTOM.z;
+	float jitter = INSTANCE_CUSTOM.w;
 
 	v_color = regime_color(regime);
 	v_color.a *= highlight;
+
+	// Per-object size and brightness variation. See SatelliteField._jitter():
+	// this exists to break the wallpaper condition, where a dense field of
+	// interchangeable points lets each eye pair up with the wrong partner.
+	// Size and brightness are deliberately CORRELATED -- it reads as a natural
+	// magnitude spread, and covarying them makes each point more distinct than
+	// varying either alone.
+	size *= mix(0.72, 1.34, jitter);
+	v_color.a *= mix(0.62, 1.30, jitter);
 
 	// Billboard in view space. Size is in WORLD units, deliberately not screen
 	// pixels: a screen-constant sprite carries no disparity cue and fights the

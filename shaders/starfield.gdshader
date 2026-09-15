@@ -18,6 +18,11 @@ uniform float brightness : hint_range(0.0, 2.0) = 0.85;
 uniform float coverage : hint_range(0.0, 0.2) = 0.045;
 uniform float star_size : hint_range(0.02, 0.5) = 0.13;
 uniform vec3 space_tint : source_color = vec3(0.008, 0.011, 0.022);
+// Inverse of the content rig's rotation. Sampling through it pins the stars to
+// the inertial frame, so orbiting the globe sweeps the starfield past exactly as
+// moving the camera would. Without it the stars sit fixed while the Earth turns,
+// which is the giveaway that the content is rotating rather than the viewer.
+uniform mat3 frame_inverse = mat3(1.0);
 
 float hash13(vec3 p) {
 	p = fract(p * 0.1031);
@@ -26,7 +31,7 @@ float hash13(vec3 p) {
 }
 
 void sky() {
-	vec3 p = EYEDIR * density;
+	vec3 p = (frame_inverse * EYEDIR) * density;
 	vec3 cell = floor(p);
 	vec3 f = p - cell;
 

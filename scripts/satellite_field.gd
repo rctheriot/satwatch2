@@ -124,7 +124,27 @@ func _write_custom_data() -> void:
 		_buffer[b] = REGIME_IDS.get(catalog[src].get("regime", "LEO"), 0.0)
 		_buffer[b + 1] = _highlight[src]
 		_buffer[b + 2] = point_size * REGIME_SIZE.get(catalog[src].get("regime", "LEO"), 1.0)
-		_buffer[b + 3] = 0.0
+		_buffer[b + 3] = _jitter(catalog[src].get("norad_id", src))
+
+## Stable per-object variation in [0,1], used by the shader to vary size and
+## brightness.
+##
+## This is a STEREO fix, not decoration. At the LEO framing the field's mean
+## on-screen point spacing is about 14 px while the scene's disparity range is
+## about 39 px -- so a point's true match in the other eye is frequently farther
+## away than its nearest neighbour. With interchangeable dots that is the
+## classic wallpaper condition: the visual system pairs a point in one eye with
+## the WRONG point in the other and fuses phantom depth, or fails to settle at
+## all. Giving every object its own size and brightness makes matches unique.
+##
+## Seeded from NORAD ID so it is identical in both eyes and across frames and
+## rebuilds. Anything per-frame or per-eye here would be far worse than no
+## jitter at all.
+static func _jitter(seed_value: int) -> float:
+	var h := int(seed_value) * 2654435761
+	h = (h ^ (h >> 13)) * 1274126177
+	return float(absi(h ^ (h >> 16)) % 4096) / 4096.0
+
 
 func update_positions(unix_seconds: float) -> void:
 	if store == null or not store.is_loaded() or active.is_empty():
