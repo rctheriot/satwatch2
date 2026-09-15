@@ -13,6 +13,9 @@ extends Node3D
 
 const EPHEMERIS_PATH := "res://data/ephemeris.bin"
 const CATALOG_PATH := "res://data/catalog.json"
+## Optional -- built by tools/find_conjunctions.py. Absent just means no
+## close-approach chapter.
+const CONJUNCTIONS_PATH := "res://data/conjunctions.json"
 
 @onready var clock: SimClock = $SimClock
 @onready var rig: ContentRig = $EarthRig
@@ -23,11 +26,13 @@ const CATALOG_PATH := "res://data/catalog.json"
 @onready var selection: SelectionController = $Selection
 @onready var deck: ChapterDeck = $ChapterDeck
 @onready var camera: CameraDirector = $CameraDirector
+@onready var inset: ConjunctionInset = $ConjunctionInset
 @onready var sun_light: DirectionalLight3D = $Sun
 @onready var wall: Node = $StereoWallDisplay
 
 var store := EphemerisStore.new()
 var catalog := CatalogStore.new()
+var conjunctions := ConjunctionStore.new()
 
 var _earth_material: ShaderMaterial
 var _atmo_material: ShaderMaterial
@@ -75,11 +80,26 @@ func _ready() -> void:
 	selection.selection_changed.connect(_on_selection_changed)
 
 	deck.camera = camera
+	deck.conjunctions = conjunctions
+	deck.inset = inset
 	deck.rig = rig
 	deck.field = field
 	deck.catalog = catalog
 	deck.clock = clock
 	deck.chapter_changed.connect(_on_chapter_changed)
+
+	if conjunctions.load_from(CONJUNCTIONS_PATH) == OK and conjunctions.has_tracks():
+		var pick := conjunctions.best_event()
+		if pick >= 0:
+			deck.add_conjunction_chapter(pick, conjunctions.events[pick])
+			print("Conjunction chapter: %s / %s, %.0f m at %.1f km/s" % [
+				conjunctions.events[pick]["a_name"],
+				conjunctions.events[pick]["b_name"],
+				float(conjunctions.events[pick]["miss_km"]) * 1000.0,
+				float(conjunctions.events[pick]["relative_speed_kms"])])
+	else:
+		print("No conjunction data -- run tools/find_conjunctions.py to add "
+			+ "that chapter.")
 
 	_ready_ok = true
 	deck.apply(0, false)
@@ -142,6 +162,7 @@ func _apply_earth_textures() -> void:
 func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 	hud.set_chapter(c, idx, total)
 	hud.set_exaggeration(c.altitude_exaggeration)
+	hud.set_detail_visible(c.conjunction_index < 0)
 	selection.clear()
 
 func _on_selection_changed(index: int) -> void:
@@ -182,6 +203,13 @@ func _process(_delta: float) -> void:
 	# UI rides the head so the panels stay put on the physical wall as the
 	# camera flies. They are authored in head-relative coordinates.
 	hud.global_transform = camera.head_transform()
+	# The inset rides the head too, sitting in the right-hand gutter just behind
+	# the wall plane like the panels.
+	# Sits where the selected-object panel normally is, in the right gutter just
+	# behind the wall plane. Hud.set_detail_visible() stands that panel down.
+	inset.global_transform = camera.head_transform() \
+		* Transform3D(Basis.IDENTITY, Vector3(2.22, 0.45, -2.40))
+	inset.update_time(t)
 	hud.set_comfort(camera.eye_position().distance_to(rig.global_position)
 		- rig.content_radius_m())
 

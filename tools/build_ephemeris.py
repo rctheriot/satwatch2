@@ -96,6 +96,26 @@ def subpoint(r_teme, jd, fr):
     return lat, lon
 
 
+def intl_designator(sat, rec):
+    """Full international designator, e.g. "1998-067A".
+
+    The OMM feed carries OBJECT_ID directly, but the TLE-pair mirror does not --
+    it is only encoded in columns 10-17 of line 1, which sgp4 exposes as
+    intldesg ("98067A"). Without expanding it, every debris-family query is
+    silently empty, because the field exists but is blank.
+    """
+    direct = rec.get("OBJECT_ID", "")
+    if direct:
+        return direct
+    raw = (getattr(sat, "intldesg", "") or "").strip()
+    if len(raw) < 5 or not raw[:5].isdigit():
+        return ""
+    yy = int(raw[:2])
+    # Two-digit launch years: Sputnik was 1957, so anything below 57 is 20xx.
+    year = 1900 + yy if yy >= 57 else 2000 + yy
+    return f"{year}-{raw[2:5]}{raw[5:]}"
+
+
 def classify(apo_km, peri_km, period_min, ecc):
     if ecc > 0.25:
         return "HEO"
@@ -108,6 +128,27 @@ def classify(apo_km, peri_km, period_min, ecc):
 
 def load_gp(path):
     data = json.loads(path.read_text(encoding="utf-8"))
+
+    # Deduplicate by NORAD ID regardless of source. A duplicated object is not
+    # a harmless extra row: it doubles that object's contribution to the density
+    # the whole demo is about, and conjunction screening reports it colliding
+    # with itself at 0.000 km.
+    seen, unique = {}, []
+    for rec in data:
+        nid = int(rec.get("NORAD_CAT_ID", 0))
+        epoch = str(rec.get("EPOCH", ""))
+        if nid in seen:
+            if epoch > seen[nid][0]:
+                unique[seen[nid][1]] = rec
+                seen[nid] = (epoch, seen[nid][1])
+            continue
+        seen[nid] = (epoch, len(unique))
+        unique.append(rec)
+    if len(unique) != len(data):
+        print(f"  dropped {len(data) - len(unique)} duplicate records "
+              f"({len(unique)} unique objects)")
+    data = unique
+
     sats, meta = [], []
     for rec in data:
         try:
@@ -130,7 +171,7 @@ def load_gp(path):
         meta.append({
             "name": rec.get("OBJECT_NAME", "UNKNOWN"),
             "norad_id": int(rec.get("NORAD_CAT_ID", 0)),
-            "intl_des": rec.get("OBJECT_ID", ""),
+            "intl_des": intl_designator(sat, rec),
             "epoch": rec.get("EPOCH", ""),
             "regime": classify(apo, peri, period, sat.ecco),
             "apogee_km": round(apo, 1),

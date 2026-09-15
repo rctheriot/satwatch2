@@ -178,6 +178,12 @@ func _wrapped(text: String, color: Color) -> Label:
 	return l
 
 
+## The conjunction inset occupies the right gutter, so the selected-object panel
+## stands down for that chapter rather than being drawn underneath it.
+func set_detail_visible(v: bool) -> void:
+	right.visible = v
+
+
 func set_chapter(c: Chapter, idx: int, total: int) -> void:
 	_chapter_title.text = c.title
 	_chapter_sub.text = "%s   (%d/%d)" % [c.subtitle, idx + 1, total]

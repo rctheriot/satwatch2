@@ -30,6 +30,10 @@ extends Resource
 ## that keeps the outermost visible object comfortably clear of the viewer.
 @export var camera_distance: float = 0.0
 
+## Index into ConjunctionStore.events. -1 means this is not a conjunction
+## chapter; >= 0 shows the magnified encounter inset and jumps the clock to TCA.
+@export var conjunction_index: int = -1
+
 @export_group("Time")
 @export var rate_index: int = 3
 @export var transition_seconds: float = 2.5

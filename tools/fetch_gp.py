@@ -41,8 +41,17 @@ def stamp_of(path):
 
 
 def fetch_tleapi():
-    """Page through the fallback mirror, emitting records in TLE-pair shape."""
-    out, page = [], 1
+    """Page through the fallback mirror, emitting records in TLE-pair shape.
+
+    Deduplicated by NORAD ID. The mirror pages a LIVE dataset, and a full pass
+    takes tens of minutes, so records shift between pages as objects are updated:
+    a raw paged pull returned 25,706 records containing 7,579 duplicates -- 30%
+    of the catalog -- which silently inflates object counts and density, and
+    makes conjunction screening report objects colliding with themselves at
+    0.000 km. The same reshuffling means some objects are MISSED, so the
+    coverage figure is reported rather than assumed.
+    """
+    by_id, page, raw_count = {}, 1, 0
     while True:
         url = f"{TLEAPI_URL}?page-size=100&page={page}"
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT,
@@ -53,17 +62,29 @@ def fetch_tleapi():
         if not members:
             break
         for m in members:
-            out.append({"OBJECT_NAME": m["name"], "NORAD_CAT_ID": m["satelliteId"],
-                        "EPOCH": m.get("date", ""),
-                        "TLE_LINE1": m["line1"], "TLE_LINE2": m["line2"]})
+            raw_count += 1
+            rec = {"OBJECT_NAME": m["name"], "NORAD_CAT_ID": m["satelliteId"],
+                   "EPOCH": m.get("date", ""),
+                   "TLE_LINE1": m["line1"], "TLE_LINE2": m["line2"]}
+            prev = by_id.get(rec["NORAD_CAT_ID"])
+            # Keep the freshest elements when the same object appears twice.
+            if prev is None or rec["EPOCH"] > prev["EPOCH"]:
+                by_id[rec["NORAD_CAT_ID"]] = rec
         total = body.get("totalItems", 0)
-        print(f"  page {page}: {len(out)}/{total}", end="\r", flush=True)
-        if len(out) >= total:
+        print(f"  page {page}: {len(by_id)} unique / {raw_count} fetched "
+              f"of {total}", end="\r", flush=True)
+        if raw_count >= total:
             break
         page += 1
         time.sleep(0.15)
     print()
-    return out
+    dupes = raw_count - len(by_id)
+    print(f"  {len(by_id)} unique objects "
+          f"({dupes} duplicate records dropped, {100.0 * dupes / max(raw_count, 1):.0f}%)")
+    if total:
+        print(f"  coverage: {100.0 * len(by_id) / total:.1f}% of the mirror's "
+              f"reported {total} objects")
+    return list(by_id.values())
 
 
 def fetch(group):

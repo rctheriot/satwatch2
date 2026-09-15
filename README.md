@@ -217,8 +217,44 @@ It also records, per object, the maximum radius actually ATTAINED in the window
 (`max_radius_re`) — not orbit apogee. The comfort clamp is driven by what is on
 screen; an HEO object near perigee for the whole span never reaches its apogee.
 
-Current build: 23,013 objects (20,757 LEO / 1,231 GEO / 673 HEO / 352 MEO),
-99 MB.
+**Deduplication is not optional.** The mirror pages a live dataset and a full
+pass takes tens of minutes, so records shift between pages: a raw pull returned
+25,706 records containing **7,579 duplicates — 30% of the catalog**. Duplicates
+are not harmless extra rows; they double an object's contribution to the very
+density this demo is about, and conjunction screening reports objects colliding
+with themselves at 0.000 km. Deduped at all three layers (fetch, build, screen),
+and fetch reports coverage against the mirror's own total, because the same
+reshuffling means some objects are missed.
+
+International designators are expanded from TLE line 1 when the feed omits
+`OBJECT_ID` (the mirror does). Without that the field is present but blank, and
+every debris-family query silently returns nothing.
+
+Current build: 16,282 objects (14,745 LEO / 845 GEO / 435 HEO / 257 MEO), 70 MB.
+
+## Conjunction screening
+
+`tools/find_conjunctions.py` is a two-stage screen. A KD-tree per 30 s sample
+flags candidate pairs, then each candidate is re-propagated at 1 s to find the
+actual time of closest approach. The refinement is not optional: at 30 s spacing
+and closing speeds up to 15 km/s, objects move hundreds of km between samples,
+so reporting stage-1 separations as miss distances would be badly wrong.
+
+Two filters that the data forced:
+
+- **Self-pairs** from duplicate records (fixed upstream, guard retained).
+- **Co-orbital pairs.** Docked spacecraft pass every distance test at 0.000 km —
+  ISS modules with their visiting Dragon/Progress/Cygnus, the Chinese station
+  with Tianzhou. They are physically attached but tracked separately, so they
+  share one TLE. Relative velocity separates them: a conjunction that matters is
+  fast. 51 pairs excluded below 0.1 km/s.
+
+Current screen finds sub-kilometre approaches at up to 9.1 km/s.
+
+**This is not an operational conjunction product.** It screens public GP data
+with no covariance; real assessment uses special-perturbations ephemeris and
+owner-operator data. SGP4 error here is comparable to the miss distances
+themselves, and the UI says so.
 
 **Export packaging:** `*.bin` and `*.json` are non-resource files and will
 silently vanish from a Windows export unless added to the export preset's
@@ -230,8 +266,8 @@ M1 Max, full catalog, `-- --benchmark 6 --chapter 1`:
 
 | Window | Frame time | FPS | `update_positions` |
 |---|---|---|---|
-| 1920×648 (1.2 Mpix) | 8.09 ms | 123.7 | 7.61 ms (94 %) |
-| 4800×1288 (6.2 Mpix) | 8.15 ms | 122.8 | 7.65 ms (94 %) |
+| 1920×648, 14,745 objects | 6.49 ms | 154.2 | dominant cost |
+| 1920×648, 20,757 objects | 8.09 ms | 123.7 | 7.61 ms (94 %) |
 
 Frame time is **flat across a 5× pixel range** — this is CPU-bound, not
 fill-bound. `SatelliteField.update_positions()` is now 94 % of the frame:

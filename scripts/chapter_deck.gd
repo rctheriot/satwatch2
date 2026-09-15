@@ -15,6 +15,8 @@ var chapters: Array[Chapter] = []
 var index: int = 0
 
 var camera: CameraDirector
+var conjunctions: ConjunctionStore
+var inset: ConjunctionInset
 var rig: ContentRig
 var field: SatelliteField
 var catalog: CatalogStore
@@ -23,6 +25,22 @@ var clock: SimClock
 func _ready() -> void:
 	if chapters.is_empty():
 		chapters = _default_deck()
+
+## Appended after load, because it depends on data that may not be built yet.
+## tools/find_conjunctions.py is optional -- without it the deck is just shorter.
+func add_conjunction_chapter(index: int, e: Dictionary) -> void:
+	var c := Chapter.new()
+	c.title = "CLOSE APPROACH"
+	c.subtitle = "%s / %s — %.0f m at %.1f km/s" % [
+		e.get("a_name", "?"), e.get("b_name", "?"),
+		float(e.get("miss_km", 0.0)) * 1000.0,
+		float(e.get("relative_speed_kms", 0.0))]
+	c.regimes = ["LEO"]
+	c.conjunction_index = index
+	c.content_scale = 1.45
+	c.altitude_exaggeration = 2.0
+	c.elevation = 0.35
+	chapters.append(c)
 
 ## Built in code rather than as .tres so the deck is reviewable in one place and
 ## survives a resource re-import.
@@ -76,6 +94,30 @@ func _default_deck() -> Array[Chapter]:
 	starlink.altitude_exaggeration = 2.0
 	out.append(starlink)
 
+	# --- Breakup events -------------------------------------------------------
+	# Debris from one event shares its launch's international designator, so a
+	# whole cloud is one prefix. Both of these are still the largest identifiable
+	# families in the catalog, which is the point being made.
+	var fengyun := Chapter.new()
+	fengyun.title = "BREAKUP: FENGYUN-1C"
+	fengyun.subtitle = "2007 ASAT test — debris still on orbit today"
+	fengyun.regimes = ["LEO"]
+	fengyun.highlight_intl_prefix = "1999-025"
+	fengyun.content_scale = 1.45
+	fengyun.altitude_exaggeration = 2.0
+	fengyun.elevation = 0.55
+	out.append(fengyun)
+
+	var collision := Chapter.new()
+	collision.title = "COLLISION: 2009"
+	collision.subtitle = "Cosmos 2251 and Iridium 33 — two clouds from one event"
+	collision.regimes = ["LEO"]
+	collision.highlight_intl_prefix = "1993-036"
+	collision.content_scale = 1.45
+	collision.altitude_exaggeration = 2.0
+	collision.elevation = 0.5
+	out.append(collision)
+
 	return out
 
 ## Distance that keeps the outermost visible object PRESET_CLEARANCE beyond the
@@ -102,6 +144,20 @@ func apply(i: int, animate: bool = true) -> void:
 		field.set_highlight(PackedInt32Array())
 
 	clock.rate_index = c.rate_index
+
+	# A conjunction chapter jumps the clock to the encounter and slows it down;
+	# at 1 min/sec a 6 km/s approach is over before anyone sees it.
+	if c.conjunction_index >= 0 and conjunctions != null \
+			and c.conjunction_index < conjunctions.events.size():
+		var e: Dictionary = conjunctions.events[c.conjunction_index]
+		inset.show_event(e)
+		clock.paused = false
+		clock.rate_index = 1
+		clock.now_unix = float(e.get("tca_unix", clock.now_unix)) - 45.0
+		field.set_highlight(PackedInt32Array([
+			int(e.get("a_index", -1)), int(e.get("b_index", -1))]))
+	elif inset != null:
+		inset.visible = false
 
 	# set_filter and the scale change both move the outermost object, so the
 	# derived distance has to be computed after them.
