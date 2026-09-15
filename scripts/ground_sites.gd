@@ -57,21 +57,29 @@ static func site_up(lat_deg: float, lon_deg: float) -> Vector3:
 ## Is a point at `p` (Earth radii, Earth-fixed) at or above `mask_deg` elevation
 ## as seen from the site at unit vector `up`?
 ##
-## Derivation, with r = |p| and c = cos of the geocentric angle between site and
-## object:  tan(elevation) = (c - 1/r) / sqrt(1 - c^2)
+## Derivation, with r = |p|, d = p . up, and c = d/r the cosine of the
+## geocentric angle between site and object:
 ##
-## Squaring both sides removes the square root, which matters: this runs for
-## every object against every site, and a sqrt per pair is the difference
-## between a background task and a stutter.
+##     tan(elev) = (c - 1/r) / sqrt(1 - c^2)
+##              = ((d - 1)/r) / (sqrt(r^2 - d^2)/r)
+##              = (d - 1) / sqrt(r^2 - d^2)
+##
+## so elev >= mask, given d > 1, is exactly  (d - 1)^2 >= t^2 (r^2 - d^2).
+##
+## The radius cancels and the square root goes with it. Nothing here needs a
+## sqrt or even |p|, which matters: this runs for every object against every
+## site, and the earlier form -- two sqrts and a function call per pair -- cost
+## about 24 ms a frame and dropped the surveillance chapter to 30 fps.
+##
+## SensorNetwork inlines this same arithmetic in its hot loop; GDScript call
+## overhead alone is significant at 70,000 evaluations per frame. Keep the two
+## in step -- tests/verify_sensors.gd checks this one against direct geometry.
 static func is_visible(p: Vector3, up: Vector3, tan_mask: float) -> bool:
-	var r := p.length()
-	if r < 1.0:
-		return false
-	var c := p.dot(up) / r
-	var a := c - 1.0 / r
-	if a <= 0.0:
-		return false                       # below the local horizon
-	return a * a >= tan_mask * tan_mask * (1.0 - c * c)
+	var d := p.dot(up)
+	if d <= 1.0:
+		return false                       # at or below the local horizon
+	var e := d - 1.0
+	return e * e >= tan_mask * tan_mask * (p.length_squared() - d * d)
 
 ## Is an object in sunlight? Cylindrical umbra approximation: behind the Earth
 ## relative to the sun, and within one Earth radius of the Earth-sun axis.
@@ -80,7 +88,8 @@ static func is_sunlit(p: Vector3, sun: Vector3) -> bool:
 	var along := p.dot(sun)
 	if along >= 0.0:
 		return true                        # sunward side, always lit
-	return (p - sun * along).length() > 1.0
+	# Perpendicular distance from the Earth-sun axis, compared squared.
+	return p.length_squared() - along * along > 1.0
 
 ## Sun elevation at a site, in degrees. Optical sites need real darkness, not
 ## merely night: astronomical twilight is about -18, and nothing useful happens

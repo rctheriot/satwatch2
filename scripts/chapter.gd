@@ -46,6 +46,12 @@ extends Resource
 
 ## Show the Space Surveillance Network layer and its per-site visibility panel.
 @export var show_sensors: bool = false
+## Show the live ADS-B aircraft layer.
+@export var show_aircraft: bool = false
+## Hide the satellite field. The air-domain chapter needs this: aircraft and
+## satellites are 40x apart in altitude, so any exaggeration that makes the air
+## layer visible would badly misrepresent where the satellites are.
+@export var show_satellites: bool = true
 
 @export_group("Time")
 ## Chapters deliberately do NOT set the clock rate. Having each one impose its

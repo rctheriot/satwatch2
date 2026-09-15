@@ -59,6 +59,19 @@ var dim_others: float = 0.28
 var _max_radius: float = 1.0
 var _radius_dirty: bool = true
 
+## Interpolated positions for the currently active objects, FOUR floats per
+## slot -- x, y, z and the squared radius -- in Earth radii and WITHOUT altitude
+## exaggeration. Refreshed by update_positions() as a by-product of work it
+## already does.
+##
+## r^2 is cached because the visibility loop needs it once per object per SITE,
+## and recomputing it there meant five redundant evaluations a frame.
+##
+## SensorNetwork reads this instead of calling EphemerisStore.position_at()
+## again: at five sites per frame that was 73,725 redundant interpolations every
+## frame, recomputing what had just been computed.
+var current_positions: PackedFloat32Array = PackedFloat32Array()
+
 func setup(p_store: EphemerisStore, p_catalog: Array) -> void:
 	store = p_store
 	catalog = p_catalog
@@ -110,12 +123,15 @@ func set_filter(regimes: Array) -> void:
 ## Because colour now does the separating, the rest can stay dimmer-but-legible
 ## rather than being pushed to near-black; the surrounding population is the
 ## context that makes a debris cloud mean anything.
+## Cheap by design: this only touches the per-object highlight values. The
+## per-instance buffer write happens in update_positions(), which already walks
+## every active object, so marking a new visibility set costs a fill and a few
+## thousand stores rather than a second full pass over the instance buffer.
 func set_highlight(indices: PackedInt32Array) -> void:
 	_highlight.fill(dim_others if indices.size() > 0 else 1.0)
 	for i in indices:
 		if i >= 0 and i < _highlight.size():
 			_highlight[i] = -1.0
-	_write_custom_data()
 
 ## Outermost radius among the currently visible objects, after exaggeration.
 ## This is what decides how close the field comes to the viewer's face, so
@@ -143,7 +159,6 @@ func _write_custom_data() -> void:
 		var b := slot * STRIDE + 12
 		_buffer[b] = REGIME_IDS.get(catalog[src].get("regime", "LEO"), 0.0)
 		# Sign is the highlight flag; magnitude is brightness.
-		_buffer[b + 1] = _highlight[src]
 		_buffer[b + 2] = point_size * REGIME_SIZE.get(catalog[src].get("regime", "LEO"), 1.0)
 		_buffer[b + 3] = _jitter(catalog[src].get("norad_id", src))
 
@@ -181,6 +196,8 @@ func update_positions(unix_seconds: float) -> void:
 	var base_b := i1 * n * 3
 	var pos := store.positions
 	var k := altitude_exaggeration
+	if current_positions.size() != active.size() * 4:
+		current_positions.resize(active.size() * 4)
 
 	for slot in active.size():
 		var src: int = active[slot]
@@ -189,6 +206,15 @@ func update_positions(unix_seconds: float) -> void:
 		var x := pos[a] + (pos[b] - pos[a]) * t
 		var y := pos[a + 1] + (pos[b + 1] - pos[a + 1]) * t
 		var z := pos[a + 2] + (pos[b + 2] - pos[a + 2]) * t
+
+		# Cache the TRUE position before exaggeration. Visibility geometry must
+		# use real altitudes; exaggerated ones would put objects over horizons
+		# they are not actually above.
+		var c := slot * 4
+		current_positions[c] = x
+		current_positions[c + 1] = y
+		current_positions[c + 2] = z
+		current_positions[c + 3] = x * x + y * y + z * z
 
 		# Altitude exaggeration. At true scale the LEO shell sits ~1% off the
 		# globe and the layered structure we are selling is invisible. Scaling
@@ -205,6 +231,10 @@ func update_positions(unix_seconds: float) -> void:
 		_buffer[o + 3] = x
 		_buffer[o + 7] = y
 		_buffer[o + 11] = z
+		# Folded in here rather than in a separate pass: the highlight changes
+		# every time the sensor network publishes, and a second walk over the
+		# instance buffer to write one float showed up as a periodic hitch.
+		_buffer[o + 13] = _highlight[src]
 
 	multimesh.buffer = _buffer
 	last_update_usec = Time.get_ticks_usec() - _t0

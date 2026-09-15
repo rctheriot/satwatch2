@@ -1,4 +1,4 @@
-[gd_scene load_steps=24 format=3 uid="uid://d4m7g1ny1xiu3"]
+[gd_scene load_steps=26 format=3 uid="uid://d4m7g1ny1xiu3"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://d2mxktnyjcc1a" path="res://addons/stereo_wall_display/stereo_wall_display.gd" id="2_stereo"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/camera_director.gd" id="13_cam"]
 [ext_resource type="Shader" path="res://shaders/aurora.gdshader" id="15_aurora"]
 [ext_resource type="Script" path="res://scripts/sensor_network.gd" id="16_sensors"]
+[ext_resource type="Script" path="res://scripts/aircraft_layer.gd" id="17_air"]
 [ext_resource type="Script" path="res://scripts/satellite_field.gd" id="5_field"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6_hud"]
 [ext_resource type="Script" path="res://scripts/chapter_deck.gd" id="8_deck"]
@@ -75,6 +76,21 @@ shader_parameter/low_color = Color(0.22, 1, 0.55, 1)
 shader_parameter/high_color = Color(1, 0.25, 0.42, 1)
 shader_parameter/terminator_softness = 0.22
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_air"]
+shader = ExtResource("11_sat")
+shader_parameter/leo_color = Color(1, 0.82, 0.35, 1)
+shader_parameter/meo_color = Color(1, 0.82, 0.35, 1)
+shader_parameter/geo_color = Color(1, 0.82, 0.35, 1)
+shader_parameter/heo_color = Color(1, 0.82, 0.35, 1)
+shader_parameter/highlight_color = Color(1, 0.82, 0.35, 1)
+shader_parameter/base_color_override = Color(0, 0, 0, 0)
+shader_parameter/brightness = 1.1
+shader_parameter/point_pixels = 2.8
+shader_parameter/depth_cue = 0.3
+shader_parameter/reference_depth = 4.5
+shader_parameter/min_pixel_size = 1.6
+shader_parameter/faint_alpha_floor = 0.55
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("12_sky")
 shader_parameter/density = 140.0
@@ -137,6 +153,13 @@ material_override = SubResource("ShaderMaterial_earth")
 [node name="Aurora" type="MeshInstance3D" parent="EarthRig/EarthMesh"]
 mesh = SubResource("SphereMesh_aurora")
 material_override = SubResource("ShaderMaterial_aurora")
+
+[node name="AircraftLayer" type="MultiMeshInstance3D" parent="EarthRig/EarthMesh"]
+material_override = SubResource("ShaderMaterial_air")
+script = ExtResource("17_air")
+altitude_exaggeration = 28.0
+point_size = 0.8
+trail_seconds = 1000.0
 
 [node name="SensorNetwork" type="Node3D" parent="EarthRig/EarthMesh"]
 script = ExtResource("16_sensors")

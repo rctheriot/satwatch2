@@ -78,6 +78,11 @@ panel rather than disappearing. Overstating fidelity to an audience that works
 this problem daily costs more than the demo can buy back, and exaggerated
 geometry that is not labelled is simply wrong.
 
+**Wall-fixed UI does not depth-test against the scene.** The panels are real
+geometry 2.45 m in front of the viewer, so zooming the content in far enough
+pushed the globe through them and the UI disappeared into the Earth. A panel
+fixed to the physical wall is a window frame, not an object in the scene.
+
 **Wall-fixed UI is PARENTED to the camera pivot, not tracking it.** Copying the
 head transform each frame looked correct but was one frame stale — Godot calls
 `_process` parent-first, so `main.gd` read the pose before `CameraDirector` had
@@ -298,6 +303,25 @@ themselves, and the UI says so.
 silently vanish from a Windows export unless added to the export preset's
 non-resource file filter.
 
+## Live aircraft (ADS-B)
+
+`tools/fetch_aircraft.py` pulls a live OpenSky snapshot — currently 8,387
+airborne aircraft, median altitude 6.8 km. Gold points are aircraft; purple
+ribbons are about sixteen minutes of flight, **dead-reckoned** from each
+aircraft's reported speed and heading rather than recorded history, which the
+panel says.
+
+It earns its place by making the scale of everything else concrete. Airliners
+cruise near 10 km — about 0.0017 Earth radii, thinner than the coastlines drawn
+on the globe, so the layer is exaggerated 28x just to exist on screen. The
+lowest tracked satellites are roughly forty times higher, and the geostationary
+belt three thousand times. The satellite field is hidden for this chapter
+deliberately: no single exaggeration can show both honestly.
+
+Positions advance by rotating a precomputed position/tangent pair rather than
+re-deriving the great-circle formula each frame, and trails are camera-facing
+ribbons on their own MultiMesh so they hold a constant pixel width.
+
 ## Space weather
 
 `tools/fetch_space_weather.py` pulls the NOAA SWPC OVATION auroral oval, the
@@ -407,8 +431,15 @@ M1 Max, full catalog, `-- --benchmark 6 --chapter 1`:
 
 | Window | Frame time | FPS | `update_positions` |
 |---|---|---|---|
-| 1920×648, 14,745 objects | 6.49 ms | 154.2 | dominant cost |
-| 1920×648, 20,757 objects | 8.09 ms | 123.7 | 7.61 ms (94 %) |
+| Chapter 0 (LEO, 14,745 objects) | 9.3 ms | 103 |
+| Chapter 8 (surveillance) | 17.6 ms | 57 |
+| Chapter 9 (aircraft + trails) | 21.3 ms | 47 |
+
+The surveillance and aircraft chapters are the two heavy ones and both are CPU
+bound in GDScript — visibility testing and dead-reckoning respectively, not fill.
+A compute-shader path would remove both. Note the benchmark harness only started
+honouring `--chapter` recently; before that every per-chapter figure was really
+chapter 0, which is how a 30 fps regression went unnoticed.
 
 Frame time is **flat across a 5× pixel range** — this is CPU-bound, not
 fill-bound. `SatelliteField.update_positions()` is now 94 % of the frame:

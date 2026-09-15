@@ -14,6 +14,7 @@ extends Node3D
 const EPHEMERIS_PATH := "res://data/ephemeris.bin"
 const CATALOG_PATH := "res://data/catalog.json"
 const SPACE_WEATHER_PATH := "res://data/space_weather.json"
+const AIRCRAFT_PATH := "res://data/aircraft.json"
 ## tools/find_conjunctions.py still produces data/conjunctions.json as a
 ## standalone analysis product -- the close-approach chapter was cut because the
 ## events it finds are Starlink-on-Starlink, which tells a viewer little. The
@@ -29,6 +30,7 @@ const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 @onready var deck: ChapterDeck = $ChapterDeck
 @onready var camera: CameraDirector = $CameraDirector
 @onready var sensors: SensorNetwork = $EarthRig/EarthMesh/SensorNetwork
+@onready var aircraft: AircraftLayer = $EarthRig/EarthMesh/AircraftLayer
 @onready var aurora: MeshInstance3D = $EarthRig/EarthMesh/Aurora
 @onready var sun_light: DirectionalLight3D = $Sun
 @onready var wall: Node = $StereoWallDisplay
@@ -85,11 +87,22 @@ func _ready() -> void:
 
 	deck.camera = camera
 	deck.sensors = sensors
+	deck.aircraft = aircraft
 	deck.rig = rig
 	deck.field = field
 	deck.catalog = catalog
 	deck.clock = clock
 	deck.chapter_changed.connect(_on_chapter_changed)
+
+	# Optional layers each add their own chapter only if their data is present.
+	# A chapter that cannot draw its subject is worse than one that is absent:
+	# on a wall, an empty globe reads as the demo being broken.
+	if aircraft.load_from(AIRCRAFT_PATH):
+		deck.add_aircraft_chapter(aircraft)
+	else:
+		aircraft.visible = false
+		print("No aircraft snapshot -- run tools/fetch_aircraft.py for the air "
+			+ "domain chapter.")
 
 	if weather.loaded:
 		deck.add_space_weather_chapter(weather)
@@ -102,6 +115,8 @@ func _ready() -> void:
 	if bench != null:
 		bench.name = "Benchmark"
 		bench.field = field
+		if bench.chapter >= 0:
+			deck.apply(bench.chapter, false)
 		add_child(bench)
 
 	var capture := FrameCapture.from_command_line()
@@ -238,7 +253,10 @@ func _process(_delta: float) -> void:
 			field.altitude_exaggeration)
 
 	hud.set_comfort(camera.eye_position().distance_to(rig.global_position)
-		- rig.content_radius_m())
+		- deck.visible_radius_m)
+
+	if aircraft.visible:
+		aircraft.update_positions(t)
 
 	if sensors.visible:
 		sensors.update_visibility(t, clock.gmst(), clock.sun_direction())

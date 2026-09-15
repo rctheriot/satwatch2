@@ -31,8 +31,6 @@ const DARK_SUN_ELEVATION := -12.0
 ## nominal ranges, and the VISIBILITY COUNTS are computed against the full
 ## range regardless of what is drawn. The picture is cropped; the numbers are not.
 const RADAR_DRAW_KM := 3000.0
-const OPTICAL_DRAW_KM := 3500.0
-const OPTICAL_HALF_ANGLE_DEG := 6.0
 
 var field: SatelliteField
 var store: EphemerisStore
@@ -44,19 +42,34 @@ var total_visible: int = 0
 var _ups_ecef: Array[Vector3] = []
 var _tan_masks: PackedFloat32Array = PackedFloat32Array()
 var _markers: Array[MeshInstance3D] = []
-var _volumes: Array[MeshInstance3D] = []
+## One entry per site; null for optical sites, which are not drawn as volumes.
+var _volumes: Array = []
 var _visible_flags: PackedByteArray = PackedByteArray()
 var _cursor := 0
 var _updated := false
 
-## How many sites are evaluated per frame.
+## How many sites are evaluated per frame -- a straight trade between frame rate
+## and how smoothly the colouring updates.
 ##
-## One per frame meant a full pass took 15 frames -- a quarter of a second, and
-## the colouring visibly ticked. That matters because at the demo's 60x time
-## rate an object crosses a site's coverage in well under a second of real time,
-## so a 4 Hz refresh is genuinely too coarse to follow. Five per frame gives a
-## complete pass every three frames.
-const SITES_PER_FRAME := 5
+## Measured on an M1 Max with 14,745 LEO objects at 1920x648:
+##
+##     sites/frame    frame time    FPS    full pass
+##         5            21.9 ms      46     3 frames
+##         3            17.1 ms      58     5 frames
+##         2            14.7 ms      68     7 frames
+##
+## against ~9 ms (108 fps) for a chapter with no sensor layer. Three is the
+## balance: near 60 fps with a complete pass about twelve times a second. At the
+## demo's 60x time rate an object crosses a site's coverage in roughly 0.2 s of
+## real time, so that is a couple of updates per crossing -- enough not to read
+## as ticking, which one site per frame (4 Hz) plainly did.
+##
+## This is a GDScript ceiling, not an algorithmic one. A full pass is 15 sites x
+## 14,745 objects = 221,000 evaluations; the arithmetic is already square-root
+## free and inlined, and caching r^2 bought almost nothing, which says the cost
+## is array reads and loop overhead rather than maths. Moving the test to a
+## compute shader is the real fix and would make this constant irrelevant.
+const SITES_PER_FRAME := 3
 var _pending: PackedByteArray = PackedByteArray()
 
 func build() -> void:
@@ -77,7 +90,14 @@ func build() -> void:
 		site_counts[i] = 0
 		site_active[i] = true
 		_markers.append(_make_marker(up, s[3]))
-		_volumes.append(_make_volume(up, s[3], float(s[4]), float(s[5])))
+		# Only radars get a drawn volume. Optical sites are narrow-field
+		# telescopes that stare at one patch and track individual objects, so
+		# any volume drawn for them is really an arrow saying "pointing up" --
+		# it added clutter without adding information. They still appear as
+		# markers and still carry exact in-view counts, including the darkness
+		# constraint that turns them off in daylight.
+		_volumes.append(_make_volume(up, s[3], float(s[4]), float(s[5]))
+			if int(s[3]) == GroundSites.Kind.RADAR else null)
 
 func _color_for(kind: int) -> Color:
 	return Color(0.42, 0.82, 1.00) if kind == GroundSites.Kind.RADAR \
@@ -112,13 +132,8 @@ func _make_marker(up: Vector3, kind: int) -> MeshInstance3D:
 ## become an opaque mess, while overlapping shells still read as separate
 ## volumes.
 func _make_volume(up: Vector3, kind: int, range_km: float, mask_deg: float) -> MeshInstance3D:
-	var optical := kind == GroundSites.Kind.OPTICAL
-	# Optical sites are narrow-field telescopes, not surveillance fences: they
-	# stare at a small patch and track individual objects, so drawing their
-	# access volume as a near-hemisphere would misrepresent how they are used.
-	var half_angle := deg_to_rad(OPTICAL_HALF_ANGLE_DEG) if optical \
-		else deg_to_rad(90.0 - mask_deg)
-	var slant := (OPTICAL_DRAW_KM if optical else RADAR_DRAW_KM) / RE_KM
+	var half_angle := deg_to_rad(90.0 - mask_deg)
+	var slant := RADAR_DRAW_KM / RE_KM
 
 	var height := slant * cos(half_angle)
 	var radius := slant * sin(half_angle)
@@ -216,22 +231,51 @@ func _update_one_site(unix_seconds: float, gmst: float, sun: Vector3) -> void:
 	var dark := not optical \
 		or GroundSites.sun_elevation_deg(up, sun) < DARK_SUN_ELEVATION
 	site_active[site] = dark
-	_volumes[site].visible = dark
+	if _volumes[site] != null:
+		_volumes[site].visible = dark
 
 	var count := 0
 	if dark:
-		for idx in field.active:
-			var p := store.position_at(idx, unix_seconds)
-			if p.length() > max_r:
+		# The hot loop: five sites x ~15,000 objects, every frame. Written with
+		# raw floats and no function calls because at 75,000 evaluations a frame
+		# both Vector3 construction and GDScript call overhead are measurable --
+		# this loop was 24 ms and took the chapter to 30 fps.
+		#
+		# The arithmetic is GroundSites.is_visible() and is_sunlit() inlined;
+		# keep them in step. No square roots: see the derivation there.
+		var xyz := field.current_positions
+		var active := field.active
+		var slots := mini(active.size(), xyz.size() / 4)
+		var ux := up.x
+		var uy := up.y
+		var uz := up.z
+		var sx := sun.x
+		var sy := sun.y
+		var sz := sun.z
+		var t2 := tan_mask * tan_mask
+		var max_r2 := max_r * max_r
+		for slot in slots:
+			var c := slot * 4
+			var r2 := xyz[c + 3]
+			if r2 > max_r2:
 				continue
-			if not GroundSites.is_visible(p, up, tan_mask):
-				continue
-			# Optical sensors see reflected sunlight: a target in the Earth's
-			# shadow is invisible even directly overhead on a clear night.
-			if optical and not GroundSites.is_sunlit(p, sun):
-				continue
+			var px := xyz[c]
+			var py := xyz[c + 1]
+			var pz := xyz[c + 2]
+			var d := px * ux + py * uy + pz * uz
+			if d <= 1.0:
+				continue                    # at or below the local horizon
+			var e := d - 1.0
+			if e * e < t2 * (r2 - d * d):
+				continue                    # inside the elevation mask
+			if optical:
+				# Optical sensors see reflected sunlight: a target in the
+				# Earth's shadow is invisible even overhead on a clear night.
+				var along := px * sx + py * sy + pz * sz
+				if along < 0.0 and r2 - along * along <= 1.0:
+					continue
 			count += 1
-			_pending[idx] = 1
+			_pending[active[slot]] = 1
 	site_counts[site] = count
 
 	# One full pass round the network: publish and start the next.

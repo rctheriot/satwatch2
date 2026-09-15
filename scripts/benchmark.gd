@@ -9,6 +9,10 @@ extends Node
 ## a GPU vertex-shader path would remove.
 
 var seconds: float = 6.0
+## Chapter to benchmark. Previously --chapter was read only by FrameCapture, so
+## "--benchmark 8 --chapter 8" silently measured chapter 0 and every per-chapter
+## performance figure was really the same chapter.
+var chapter: int = -1
 var field: SatelliteField
 
 var _frames: PackedFloat32Array = PackedFloat32Array()
@@ -29,6 +33,9 @@ static func from_command_line() -> Benchmark:
 	var b := Benchmark.new()
 	if i + 1 < args.size():
 		b.seconds = float(args[i + 1])
+	var c := args.find("--chapter")
+	if c >= 0 and c + 1 < args.size():
+		b.chapter = int(args[c + 1])
 	return b
 
 func _process(delta: float) -> void:

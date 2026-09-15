@@ -4,6 +4,11 @@ extends Node
 
 signal chapter_changed(chapter: Chapter, index: int, total: int)
 
+## Outermost radius of what is actually DRAWN, in world metres. The satellite
+## field stays populated when hidden, so anything reading its extent for a
+## chapter that does not show it gets an answer eight Earth radii too large.
+var visible_radius_m: float = 1.0
+
 ## Clearance kept between the eye and the nearest visible object when a chapter
 ## derives its own camera distance. MIN_CONTENT_DISTANCE is the *borderline* of
 ## comfortable fusion, so presets sit back from it -- and at ~2.05 m the nearest
@@ -16,6 +21,7 @@ var index: int = 0
 
 var camera: CameraDirector
 var sensors: SensorNetwork
+var aircraft: AircraftLayer
 var rig: ContentRig
 var field: SatelliteField
 var catalog: CatalogStore
@@ -161,7 +167,9 @@ This is the mechanism behind the concern that debris begets debris: every fragme
 	sensors.subtitle = "What the ground can actually see, right now"
 	sensors.explanation = """Green objects are in view of at least one ground site right now. Red are seen by nobody.
 
-Blue cones are radars, amber are optical telescopes. A 3-degree horizon mask means an 87-degree half-angle, so a radar's access volume really is close to a hemisphere — which is how a handful of sites watch most of low orbit.
+Blue volumes are radar coverage: everything above a site's 3-degree horizon mask, out to a nominal range. They look flat because they are — a 3-degree mask means an 87-degree half-angle, so a surveillance radar really does see close to a hemisphere. That is how a handful of sites watch most of low orbit.
+
+Amber markers are optical telescopes. They are not drawn as volumes because they are narrow-field instruments that stare at one patch and track individual objects, rather than sweeping a fence.
 
 Watch where the red is. The network is concentrated in the northern hemisphere, and the southern gap is real.
 
@@ -179,6 +187,24 @@ Optical sites need darkness on the ground and sunlight on the target at once, so
 	out.append(sensors)
 
 	return out
+
+## Appended after load, because the aircraft snapshot is optional data.
+func add_aircraft_chapter(layer: AircraftLayer) -> void:
+	var c := Chapter.new()
+	c.title = "THE AIR DOMAIN"
+	c.subtitle = "%d aircraft airborne right now" % layer.count
+	c.explanation = """Every gold point is a real aircraft, airborne at this moment, from live ADS-B tracking. The purple tracks behind them are ten minutes of flight, dead-reckoned from each aircraft's reported speed and heading — a direction of travel, not a recorded path.
+
+This is the domain everyone already has an intuition for. Airliners cruise near 10 kilometres — and at true scale that layer is thinner than the coastlines drawn on this globe. It has been exaggerated heavily just to be visible at all.
+
+Now consider what that means for everything else on this wall. The lowest tracked satellites are about forty times higher than these aircraft, and the geostationary belt is three thousand times higher.
+
+The air picture is crowded, contested, and very well understood. The space picture is larger by orders of magnitude, and far less of it is watched."""
+	c.show_aircraft = true
+	c.show_satellites = false
+	c.content_scale = 1.6
+	c.elevation = 0.35
+	chapters.append(c)
 
 ## Appended after load rather than built into the deck, because the aurora layer
 ## is optional data.
@@ -231,12 +257,24 @@ func apply(i: int, animate: bool = true) -> void:
 
 	if sensors != null:
 		sensors.visible = c.show_sensors
+	if aircraft != null:
+		aircraft.visible = c.show_aircraft
+	field.visible = c.show_satellites
 
 	# set_filter and the scale change both move the outermost object, so the
 	# derived distance has to be computed after them.
+	# Frame on what is actually drawn. With the satellite field hidden, deriving
+	# the distance from its extent put the camera 15 m back for content barely
+	# larger than the globe, and the Earth came out a few degrees wide.
+	var radius_m := rig.content_radius_m()
+	if not c.show_satellites:
+		radius_m = rig.content_scale * (aircraft.max_radius()
+			if aircraft != null and c.show_aircraft and aircraft.loaded else 1.0)
+
+	visible_radius_m = radius_m
 	var dist := c.camera_distance
 	if dist <= 0.0:
-		dist = preset_distance(rig.content_radius_m())
+		dist = preset_distance(radius_m)
 	camera.goto(c.azimuth, c.elevation, dist,
 		c.transition_seconds if animate else 0.0)
 

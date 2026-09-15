@@ -43,6 +43,13 @@ func build(size_metres: Vector2, content: Control) -> void:
 	mat.albedo_texture = viewport.get_texture()
 	mat.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# Always drawn over the scene. These panels are fixed to the physical wall,
+	# but they are real geometry 2.45 m in front of the viewer, so zooming the
+	# content in far enough pushed the globe through them and the UI vanished
+	# into the Earth. Depth-testing wall-fixed UI against world content is the
+	# wrong relationship: it is a window frame, not an object in the scene.
+	mat.no_depth_test = true
+	mat.render_priority = 8
 	material_override = mat
 
 func set_update_always(always: bool) -> void:
