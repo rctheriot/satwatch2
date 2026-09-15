@@ -1,11 +1,10 @@
-[gd_scene load_steps=27 format=3 uid="uid://d4m7g1ny1xiu3"]
+[gd_scene load_steps=25 format=3 uid="uid://d4m7g1ny1xiu3"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://d2mxktnyjcc1a" path="res://addons/stereo_wall_display/stereo_wall_display.gd" id="2_stereo"]
 [ext_resource type="Script" path="res://scripts/sim_clock.gd" id="3_clock"]
 [ext_resource type="Script" path="res://scripts/content_rig.gd" id="4_rig"]
 [ext_resource type="Script" path="res://scripts/camera_director.gd" id="13_cam"]
-[ext_resource type="Script" path="res://scripts/conjunction_inset.gd" id="14_inset"]
 [ext_resource type="Shader" path="res://shaders/aurora.gdshader" id="15_aurora"]
 [ext_resource type="Script" path="res://scripts/sensor_network.gd" id="16_sensors"]
 [ext_resource type="Script" path="res://scripts/satellite_field.gd" id="5_field"]
@@ -121,7 +120,7 @@ shadow_enabled = false
 
 [node name="SimClock" type="Node" parent="."]
 script = ExtResource("3_clock")
-rate_index = 2
+rate_index = 3
 
 [node name="CameraDirector" type="Node" parent="."]
 script = ExtResource("13_cam")
@@ -155,9 +154,6 @@ altitude_exaggeration = 2.0
 
 [node name="UIRig" type="Node3D" parent="."]
 script = ExtResource("6_hud")
-
-[node name="ConjunctionInset" type="Node3D" parent="."]
-script = ExtResource("14_inset")
 
 [node name="Selection" type="Node3D" parent="."]
 script = ExtResource("7_sel")

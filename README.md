@@ -349,24 +349,41 @@ far faster than the picture meaningfully changes.
 
 ## Chapters
 
-Each carries an explanation on the right panel saying what the viewer is actually
-looking at. A wall of unexplained dots impresses nobody.
+Ordered as an argument, not a catalogue: build up one regime at a time from the
+crowded shells outward, put them together at true scale, then go to specific
+events. The full-catalog view means far more once the viewer has been told what
+each population is.
 
-1. **Low Earth Orbit** — the crowded shells, altitude exaggerated ×2
-2. **The Full Catalog** — pulled back to true scale, LEO ball against the GEO ring
-3–6. **LEO / MEO / GEO / HEO** — one regime at a time
-7. **Constellation** — Starlink in green against the rest of LEO
-8. **Breakup: Fengyun-1C** — 2007 ASAT debris still tracked, in red
-9. **Collision: 2009** — Cosmos 2251 / Iridium 33
-10. **Surveillance Network** — ground sites, coverage volumes, live in-view counts
-11. **Space Weather** — auroral oval and Kp
+1. **Low Earth Orbit** — below 2,000 km, where the traffic is
+2. **Medium Earth Orbit** — navigation, ~20,000 km
+3. **Geostationary Belt** — 35,786 km, one orbit per day
+4. **Highly Elliptical** — fast at perigee, loitering at apogee
+5. **The Full Catalog** — all four populations at true scale (the payoff)
+6. **Constellation** — Starlink against everything else in LEO
+7. **Breakup: Fengyun-1C** — 2007 ASAT debris, still on orbit
+8. **Collision: 2009** — Cosmos 2251 / Iridium 33
+9. **Surveillance Network** — coverage volumes and live in-view counts
+10. **Space Weather** — auroral oval and Kp (appended when the data exists)
 
-The close-approach chapter is built but not in the deck: the events the screen
-finds are Starlink-on-Starlink, which says little a viewer cares about.
-`tools/find_conjunctions.py` and `ConjunctionInset` are intact, and one
-`deck.add_conjunction_chapter()` call restores it if a more telling event appears.
+Each carries an explanation on the right panel saying what the viewer is
+actually looking at. A wall of unexplained dots impresses nobody.
 
-## Performance## Performance
+**Chapters do not set the clock rate.** Each one imposing its own speed made
+time jump between demos, which reads as the visualisation being inconsistent
+rather than as a deliberate choice. Rate is a global control the presenter sets
+once with `[` and `]`, defaulting to 60x — a 90-minute LEO orbit completes in
+about 90 seconds.
+
+`tests/verify_frames.gd` asserts the build-up order, that no two chapters show
+the same thing, and that `Chapter` carries no rate field. There were briefly two
+chapters showing an identical LEO view, which just looks like the demo
+stuttering.
+
+The close-approach chapter was cut: the events the screen finds are
+Starlink-on-Starlink, which tells a viewer little. `tools/find_conjunctions.py`
+remains as a standalone analysis product; the renderer for it is in git history.
+
+## Performance## Performance## Performance
 
 M1 Max, full catalog, `-- --benchmark 6 --chapter 1`:
 

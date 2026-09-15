@@ -36,12 +36,12 @@ extends Resource
 ## that keeps the outermost visible object comfortably clear of the viewer.
 @export var camera_distance: float = 0.0
 
-## Index into ConjunctionStore.events. -1 means this is not a conjunction
-## chapter; >= 0 shows the magnified encounter inset and jumps the clock to TCA.
-@export var conjunction_index: int = -1
 ## Show the Space Surveillance Network layer and its per-site visibility panel.
 @export var show_sensors: bool = false
 
 @export_group("Time")
-@export var rate_index: int = 3
+## Chapters deliberately do NOT set the clock rate. Having each one impose its
+## own speed made the time base jump between demos, which reads as the
+## visualisation being inconsistent rather than as a deliberate choice. Rate is
+## a global control the presenter sets once, with [ and ].
 @export var transition_seconds: float = 2.5

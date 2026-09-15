@@ -15,9 +15,7 @@ var chapters: Array[Chapter] = []
 var index: int = 0
 
 var camera: CameraDirector
-var conjunctions: ConjunctionStore
 var sensors: SensorNetwork
-var inset: ConjunctionInset
 var rig: ContentRig
 var field: SatelliteField
 var catalog: CatalogStore
@@ -27,112 +25,116 @@ func _ready() -> void:
 	if chapters.is_empty():
 		chapters = _default_deck()
 
-## Appended after load, because it depends on data that may not be built yet.
-## tools/find_conjunctions.py is optional -- without it the deck is just shorter.
-func add_conjunction_chapter(index: int, e: Dictionary) -> void:
-	var c := Chapter.new()
-	c.title = "CLOSE APPROACH"
-	c.subtitle = "%s / %s — %.0f m at %.1f km/s" % [
-		e.get("a_name", "?"), e.get("b_name", "?"),
-		float(e.get("miss_km", 0.0)) * 1000.0,
-		float(e.get("relative_speed_kms", 0.0))]
-	c.regimes = ["LEO"]
-	c.conjunction_index = index
-	c.content_scale = 1.45
-	c.altitude_exaggeration = 2.0
-	c.elevation = 0.35
-	chapters.append(c)
-
 ## Built in code rather than as .tres so the deck is reviewable in one place and
 ## survives a resource re-import.
+##
+## Ordered as an argument, not a catalogue: build up one regime at a time from
+## the crowded shells outward, put them together at true scale, and only then go
+## to specific events. The full-catalog view means much more once the viewer has
+## already been told what each population is.
 func _default_deck() -> Array[Chapter]:
 	var out: Array[Chapter] = []
 
+	# --- Build-up: one regime at a time ---------------------------------------
 	var leo := Chapter.new()
 	leo.title = "LOW EARTH ORBIT"
-	leo.subtitle = "Tracked objects below 2,000 km"
-	leo.regimes = ["LEO"]
-	leo.explanation = """Every point is a tracked object below 2,000 km — working satellites, spent rocket bodies, and debris. They are not spread evenly. The bands are the orbits everyone wants: sun-synchronous paths for imaging, and the shells the big constellations fly in.
+	leo.subtitle = "Below 2,000 km — where the traffic is"
+	leo.explanation = """Every point is a tracked object below 2,000 km — working satellites, spent rocket bodies, and debris. They are not spread evenly. The bands are the orbits everyone wants: sun-synchronous paths for imaging, and the shells the large constellations fly in.
+
+An orbit here takes about 90 minutes, so a satellite passes over any given point briefly and often.
 
 Altitude is exaggerated x2 so the shells separate. At true scale this entire layer sits within a few percent of the globe's own radius."""
+	leo.regimes = ["LEO"]
 	leo.content_scale = 1.45
 	leo.altitude_exaggeration = 2.0
 	out.append(leo)
 
-	# The pull-back. A LEO-tuned scale cannot hold MEO/GEO/HEO: the outermost
-	# object is 8 Earth radii out, so at the LEO scale the GEO belt would be
-	# metres behind the viewer's head. Scale is therefore per-chapter, and this
-	# transition is the reveal -- do not cut it.
+	var meo := Chapter.new()
+	meo.title = "MEDIUM EARTH ORBIT"
+	meo.subtitle = "Navigation, around 20,000 km"
+	meo.explanation = """Far fewer objects, much further out. This is navigation: GPS, GLONASS, Galileo and BeiDou near 20,000 km, where one orbit takes about twelve hours.
+
+Height buys coverage. From up here each satellite sees a huge fraction of the Earth at once, so around thirty give continuous global service — against thousands needed in low orbit.
+
+Notice the globe has shrunk. The scale changed, not the Earth."""
+	meo.regimes = ["MEO"]
+	meo.content_scale = 0.40
+	meo.altitude_exaggeration = 1.0
+	out.append(meo)
+
+	var geo := Chapter.new()
+	geo.title = "GEOSTATIONARY BELT"
+	geo.subtitle = "35,786 km — one orbit per day"
+	geo.explanation = """At 35,786 km an orbit takes exactly one sidereal day. A satellite over the equator therefore turns with the Earth and appears to hold still, so a ground antenna can point once and stay pointed.
+
+That single fact makes this ring the most valuable real estate in space: communications, weather, and missile warning all live here.
+
+It is also fixed, crowded and entirely predictable — which cuts both ways. Everything in this belt knows where everything else is, and so does everyone on the ground."""
+	geo.regimes = ["GEO"]
+	geo.content_scale = 0.40
+	geo.altitude_exaggeration = 1.0
+	geo.elevation = 0.05
+	out.append(geo)
+
+	var heo := Chapter.new()
+	heo.title = "HIGHLY ELLIPTICAL"
+	heo.subtitle = "Fast at perigee, loitering at apogee"
+	heo.explanation = """These orbits trade a fast, low perigee for a slow, high apogee. A Molniya orbit spends most of its twelve hours loitering over one hemisphere and crosses the rest quickly.
+
+That buys long dwell over high latitudes, which a geostationary satellite sitting on the equator cannot see well.
+
+They also cut through every other regime on the way past, which is what makes them matter for anyone tracking what is up there."""
+	heo.regimes = ["HEO"]
+	heo.content_scale = 0.40
+	heo.altitude_exaggeration = 1.0
+	heo.elevation = 0.3
+	out.append(heo)
+
+	# --- Everything together --------------------------------------------------
+	# The payoff. A LEO-tuned scale cannot hold this: the outermost object is
+	# 8 Earth radii out, so at the previous scale the belt would be metres behind
+	# the viewer's head. Scale is per-chapter, and this transition is the reveal.
 	var full := Chapter.new()
 	full.title = "THE FULL CATALOG"
-	full.subtitle = "LEO shells out to the geostationary belt"
+	full.subtitle = "All of it, at one scale"
+	full.explanation = """All four populations at once, at true scale.
+
+The bright ball is the whole of low orbit, compressed against the planet. Green is the navigation constellations; the outer ring is the geostationary belt; red is the elliptical orbits cutting through everything.
+
+Almost all of the objects are in the ball. Almost all of the value is in the ring. That mismatch is most of what makes this problem hard."""
 	full.regimes = []
-	full.explanation = """Pulled back to true scale, with no exaggeration.
-
-The bright ball is everything from the previous view — all of low orbit, compressed against the planet. The outer ring is the geostationary belt at 35,786 km: one orbit per day, so a satellite there hangs over a single longitude. Green marks the navigation constellations in between; red marks highly elliptical orbits that climb far out and fall back.
-
-Almost all the objects are in the ball. Almost all the value is in the ring."""
 	full.content_scale = 0.40
 	full.altitude_exaggeration = 1.0
-	# The one genuinely over-dense view: every regime at once, packed small.
 	full.point_size = 0.85
 	full.elevation = 0.35
 	full.transition_seconds = 5.0
 	out.append(full)
 
-	for r in ["LEO", "MEO", "GEO", "HEO"]:
-		var c := Chapter.new()
-		c.title = r
-		c.subtitle = {"LEO": "Imaging, comms, the crowded shells",
-			"MEO": "Navigation constellations",
-			"GEO": "Fixed over one longitude",
-			"HEO": "Highly elliptical, long dwell at apogee"}[r]
-		c.regimes = [r]
-		c.explanation = {"LEO": """Low Earth orbit, below 2,000 km. Imaging, weather, and the broadband constellations. An orbit takes about 90 minutes, so a satellite here passes over any given point briefly and often.
-
-This is where the traffic is, and where almost all the debris is.""", "MEO": """Medium Earth orbit. This is navigation: GPS, GLONASS, Galileo and BeiDou near 20,000 km, where one orbit takes about twelve hours.
-
-Higher orbits mean fewer satellites are needed for continuous global coverage — around thirty each, against thousands in low orbit.""",
-			"GEO": """At 35,786 km an orbit takes exactly one sidereal day. A satellite over the equator therefore turns with the Earth and appears to hold still, so a ground antenna can simply point and stay pointed.
-
-That makes this belt the most valuable real estate in space. It is also fixed, crowded, and entirely predictable — which cuts both ways.""", "HEO": """Highly elliptical orbits trade a fast, low perigee for a slow, high apogee. A Molniya orbit spends most of its twelve hours loitering over one hemisphere.
-
-That buys coverage of high latitudes, which a geostationary satellite on the equator cannot see well."""}[r]
-		c.content_scale = 1.45 if r == "LEO" else 0.40
-		c.altitude_exaggeration = 2.0 if r == "LEO" else 1.0
-		c.elevation = 0.05 if r == "GEO" else 0.3
-		out.append(c)
-
+	# --- Specific cases -------------------------------------------------------
 	var starlink := Chapter.new()
 	starlink.title = "CONSTELLATION"
-	starlink.subtitle = "STARLINK against the rest of the LEO population"
-	# Scoped to LEO deliberately: Starlink is a LEO constellation, and applying
-	# altitude exaggeration to the whole catalog would push the outermost HEO
-	# object far enough out to wreck the framing.
-	starlink.regimes = ["LEO"]
+	starlink.subtitle = "One operator against everything else in LEO"
 	starlink.explanation = """Green is Starlink. A single operator now accounts for a large share of everything in low orbit, flown as a tightly managed shell at one altitude.
 
-Blue is every other tracked object in LEO, at the same scale. The contrast is the point: the population changed shape in under a decade."""
+Blue is every other tracked object in LEO, at the same scale.
+
+The contrast is the point: the shape of the low-orbit population changed in under a decade, and it was one decision that changed it."""
+	starlink.regimes = ["LEO"]
 	starlink.highlight_name = "STARLINK"
-	# Green: an operational constellation, not a hazard.
 	starlink.highlight_color = Color(0.36, 1.0, 0.52)
 	starlink.content_scale = 1.2
 	starlink.altitude_exaggeration = 2.0
 	out.append(starlink)
 
-	# --- Breakup events -------------------------------------------------------
-	# Debris from one event shares its launch's international designator, so a
-	# whole cloud is one prefix. Both of these are still the largest identifiable
-	# families in the catalog, which is the point being made.
 	var fengyun := Chapter.new()
 	fengyun.title = "BREAKUP: FENGYUN-1C"
-	fengyun.subtitle = "2007 ASAT test — debris still on orbit today"
+	fengyun.subtitle = "2007 ASAT test — still on orbit"
+	fengyun.explanation = """In 2007 an anti-satellite test destroyed the Fengyun-1C weather satellite at 865 km.
+
+Red is the debris from that single event still being tracked today, nearly twenty years later. The breakup spread it into a shell crossing most other low orbits.
+
+At that altitude there is too little atmosphere to pull it down on any useful timescale. One test, thousands of objects, indefinitely."""
 	fengyun.regimes = ["LEO"]
-	fengyun.explanation = """In 2007 an anti-satellite test destroyed the Fengyun-1C weather satellite at 865 km altitude.
-
-Red is the debris from that single event still being tracked today, almost twenty years later. The breakup spread it into a shell crossing most other low orbits. At that altitude there is too little atmosphere to pull it down on any useful timescale, so it stays.
-
-One test, thousands of objects, indefinitely."""
 	fengyun.highlight_intl_prefix = "1999-025"
 	fengyun.content_scale = 1.45
 	fengyun.altitude_exaggeration = 2.0
@@ -141,11 +143,13 @@ One test, thousands of objects, indefinitely."""
 
 	var collision := Chapter.new()
 	collision.title = "COLLISION: 2009"
-	collision.subtitle = "Cosmos 2251 and Iridium 33 — two clouds from one event"
-	collision.regimes = ["LEO"]
+	collision.subtitle = "Cosmos 2251 and Iridium 33"
 	collision.explanation = """In 2009 the defunct Cosmos 2251 struck the working Iridium 33 satellite at 790 km, closing at roughly 11 km/s.
 
-Red is the debris still catalogued from it. One collision produced two expanding clouds at an altitude already heavily used — the mechanism behind the concern that debris can beget more debris."""
+Red is the debris still catalogued from it. One collision produced two expanding clouds at an altitude already heavily used.
+
+This is the mechanism behind the concern that debris begets debris: every fragment is itself a projectile, in the orbit band that everything else needs."""
+	collision.regimes = ["LEO"]
 	collision.highlight_intl_prefix = "1993-036"
 	collision.content_scale = 1.45
 	collision.altitude_exaggeration = 2.0
@@ -168,12 +172,11 @@ Counts are exact geometry. Ranges are nominal: real detection capability depends
 	sensors.content_scale = 1.45
 	sensors.altitude_exaggeration = 2.0
 	sensors.elevation = 0.45
-	sensors.rate_index = 4
 	out.append(sensors)
 
 	return out
 
-## Appended after load, like the conjunction chapter, because the aurora layer
+## Appended after load rather than built into the deck, because the aurora layer
 ## is optional data.
 func add_space_weather_chapter(weather: SpaceWeatherStore) -> void:
 	var c := Chapter.new()
@@ -192,7 +195,6 @@ Space weather is why the predictions on this wall carry error bars."""
 	# wherever the sun is not, so the presenter orbits in azimuth to find it --
 	# which is itself the point being made.
 	c.elevation = 1.15
-	c.rate_index = 4
 	chapters.append(c)
 
 ## Distance that keeps the outermost visible object PRESET_CLEARANCE beyond the
@@ -219,21 +221,7 @@ func apply(i: int, animate: bool = true) -> void:
 	else:
 		field.set_highlight(PackedInt32Array())
 
-	clock.rate_index = c.rate_index
-
-	# A conjunction chapter jumps the clock to the encounter and slows it down;
-	# at 1 min/sec a 6 km/s approach is over before anyone sees it.
-	if c.conjunction_index >= 0 and conjunctions != null \
-			and c.conjunction_index < conjunctions.events.size():
-		var e: Dictionary = conjunctions.events[c.conjunction_index]
-		inset.show_event(e)
-		clock.paused = false
-		clock.rate_index = 1
-		clock.now_unix = float(e.get("tca_unix", clock.now_unix)) - 45.0
-		field.set_highlight(PackedInt32Array([
-			int(e.get("a_index", -1)), int(e.get("b_index", -1))]))
-	elif inset != null:
-		inset.visible = false
+	# The clock rate is deliberately untouched -- see Chapter's Time group.
 
 	if sensors != null:
 		sensors.visible = c.show_sensors

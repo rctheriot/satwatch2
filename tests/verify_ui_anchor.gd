@@ -31,14 +31,10 @@ func _init() -> void:
 	var hud: Node3D = root.get_node_or_null("UIRig")
 	if hud == null:
 		hud = head.get_node_or_null("UIRig")
-	var inset: Node3D = head.get_node_or_null("ConjunctionInset")
 
 	print("\nWall-fixed UI is parented to the head, not tracking it:")
 	_ok("UIRig parent", hud != null and hud.get_parent() == head,
 		"parent is %s" % ("<missing>" if hud == null else hud.get_parent().name))
-	_ok("ConjunctionInset parent", inset != null and inset.get_parent() == head,
-		"parent is %s" % ("<missing>" if inset == null
-			else inset.get_parent().name))
 
 	# Negative control: --copy reproduces the old behaviour (detach the panels
 	# and copy the head transform each frame) so the check can be shown to fail

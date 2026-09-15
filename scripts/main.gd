@@ -13,10 +13,11 @@ extends Node3D
 
 const EPHEMERIS_PATH := "res://data/ephemeris.bin"
 const CATALOG_PATH := "res://data/catalog.json"
-## Optional -- built by tools/find_conjunctions.py. Absent just means no
-## close-approach chapter.
-const CONJUNCTIONS_PATH := "res://data/conjunctions.json"
 const SPACE_WEATHER_PATH := "res://data/space_weather.json"
+## tools/find_conjunctions.py still produces data/conjunctions.json as a
+## standalone analysis product -- the close-approach chapter was cut because the
+## events it finds are Starlink-on-Starlink, which tells a viewer little. The
+## renderer for it is gone; recover it from git if a more telling event appears.
 const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 
 @onready var clock: SimClock = $SimClock
@@ -28,7 +29,6 @@ const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 @onready var selection: SelectionController = $Selection
 @onready var deck: ChapterDeck = $ChapterDeck
 @onready var camera: CameraDirector = $CameraDirector
-@onready var inset: ConjunctionInset = $ConjunctionInset
 @onready var sensors: SensorNetwork = $EarthRig/EarthMesh/SensorNetwork
 @onready var aurora: MeshInstance3D = $EarthRig/EarthMesh/Aurora
 @onready var sun_light: DirectionalLight3D = $Sun
@@ -36,7 +36,6 @@ const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 
 var store := EphemerisStore.new()
 var catalog := CatalogStore.new()
-var conjunctions := ConjunctionStore.new()
 var weather := SpaceWeatherStore.new()
 
 var _earth_material: ShaderMaterial
@@ -93,21 +92,12 @@ func _ready() -> void:
 	selection.selection_changed.connect(_on_selection_changed)
 
 	deck.camera = camera
-	deck.conjunctions = conjunctions
 	deck.sensors = sensors
-	deck.inset = inset
 	deck.rig = rig
 	deck.field = field
 	deck.catalog = catalog
 	deck.clock = clock
 	deck.chapter_changed.connect(_on_chapter_changed)
-
-	# The close-approach chapter is not in the deck: the best events the screen
-	# finds are Starlink-on-Starlink, which says little a viewer cares about.
-	# tools/find_conjunctions.py and ConjunctionInset are kept intact -- one
-	# deck.add_conjunction_chapter() call brings it back if a more telling
-	# event turns up (a cross-operator approach, or a debris conjunction).
-	conjunctions.load_from(CONJUNCTIONS_PATH)
 
 	if weather.loaded:
 		deck.add_space_weather_chapter(weather)
@@ -189,7 +179,6 @@ func _load_aurora() -> void:
 func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 	hud.set_chapter(c, idx, total)
 	hud.set_exaggeration(c.altitude_exaggeration)
-	hud.set_detail_visible(c.conjunction_index < 0)
 	selection.clear()
 
 func _on_selection_changed(index: int) -> void:
@@ -210,13 +199,10 @@ func _attach_to_head() -> void:
 	var head := camera.head_node()
 	if head == null:
 		return
-	for pair in [[hud, Transform3D.IDENTITY],
-			[inset, Transform3D(Basis.IDENTITY, Vector3(2.22, 0.45, -2.40))]]:
-		var node: Node3D = pair[0]
-		if node.get_parent() != head:
-			node.get_parent().remove_child(node)
-			head.add_child(node)
-		node.transform = pair[1]
+	if hud.get_parent() != head:
+		hud.get_parent().remove_child(hud)
+		head.add_child(hud)
+	hud.transform = Transform3D.IDENTITY
 	selection.attach_to_head(head)
 
 
@@ -263,16 +249,6 @@ func _process(_delta: float) -> void:
 		_aurora_material.set_shader_parameter("altitude_exaggeration",
 			field.altitude_exaggeration)
 
-	# UI rides the head so the panels stay put on the physical wall as the
-	# camera flies. They are authored in head-relative coordinates.
-	hud.global_transform = camera.head_transform()
-	# The inset rides the head too, sitting in the right-hand gutter just behind
-	# the wall plane like the panels.
-	# Sits where the selected-object panel normally is, in the right gutter just
-	# behind the wall plane. Hud.set_detail_visible() stands that panel down.
-	inset.global_transform = camera.head_transform() \
-		* Transform3D(Basis.IDENTITY, Vector3(2.22, 0.45, -2.40))
-	inset.update_time(t)
 	hud.set_comfort(camera.eye_position().distance_to(rig.global_position)
 		- rig.content_radius_m())
 

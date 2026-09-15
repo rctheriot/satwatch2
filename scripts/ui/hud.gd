@@ -204,11 +204,6 @@ func _wrapped(text: String, color: Color) -> Label:
 	return l
 
 
-## The conjunction inset occupies the right gutter, so the selected-object panel
-## stands down for that chapter rather than being drawn underneath it.
-func set_detail_visible(v: bool) -> void:
-	right.visible = v
-
 ## Live per-site visibility. The panel re-renders only when the numbers change,
 ## since it is a SubViewport and redrawing it every frame at this pixel count is
 ## fill we do not need to spend.

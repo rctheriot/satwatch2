@@ -34,6 +34,7 @@ func _init() -> void:
 	_check_geo_stationarity(store, catalog, clock)
 	_check_chapter_clearance(catalog)
 	_check_camera_aim()
+	_check_deck_shape()
 
 	print("\n%s" % ("ALL CHECKS PASSED" if failures == 0 else "%d CHECK(S) FAILED" % failures))
 	quit(1 if failures > 0 else 0)
@@ -79,6 +80,49 @@ func _check_chapter_clearance(catalog: CatalogStore) -> void:
 		_ok("%-16s" % c.title, ok,
 			"globe %.0f deg, parallax %+.1f..%+.1f mm, depth range %.0f mm (%.0f px)"
 				% [globe_deg, p_near, p_far, range_mm, range_mm * PX_PER_MM])
+	deck.free()
+
+## The deck should be an argument, not a catalogue.
+##
+## Two regressions this guards. There were briefly two chapters showing exactly
+## the same thing -- a "LOW EARTH ORBIT" chapter and a "LEO" regime chapter with
+## identical filter, scale and exaggeration -- which just looks like the demo
+## stuttering. And chapters used to set their own clock rate, so time sped up
+## and slowed down between them for no reason the viewer could see.
+func _check_deck_shape() -> void:
+	print("\nDeck structure:")
+	var deck := ChapterDeck.new()
+	var chapters: Array[Chapter] = deck._default_deck()
+
+	var seen := {}
+	var dupes := []
+	for c in chapters:
+		# Everything that changes what is on screen. show_sensors matters: the
+		# surveillance chapter shares its framing with the LEO one and is told
+		# apart only by the layer it switches on.
+		var key := "%s|%.3f|%.2f|%s|%s|%s|%.3f" % [str(c.regimes), c.content_scale,
+			c.altitude_exaggeration, c.highlight_name, c.highlight_intl_prefix,
+			c.show_sensors, c.elevation]
+		if seen.has(key):
+			dupes.append("%s == %s" % [c.title, seen[key]])
+		seen[key] = c.title
+	_ok("no duplicate chapters", dupes.is_empty(),
+		"%d chapters, all distinct" % chapters.size() if dupes.is_empty()
+			else str(dupes))
+
+	# Altitude climbs through the build-up, then everything together.
+	var expected := ["LOW EARTH ORBIT", "MEDIUM EARTH ORBIT", "GEOSTATIONARY BELT",
+		"HIGHLY ELLIPTICAL", "THE FULL CATALOG"]
+	var got := []
+	for i in mini(expected.size(), chapters.size()):
+		got.append(chapters[i].title)
+	_ok("builds up to the full catalog", got == expected, str(got))
+
+	# Chapter has no rate field at all, so this cannot regress silently; the
+	# check documents the intent.
+	_ok("no chapter sets the clock rate",
+		not ("rate_index" in chapters[0]),
+		"rate is a global control, not per-chapter")
 	deck.free()
 
 ## Right ascension / declination of a point in the inertial (Godot-mapped TEME)
