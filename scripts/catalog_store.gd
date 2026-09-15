@@ -54,6 +54,16 @@ func indices_matching_name(fragment: String) -> PackedInt32Array:
 			out.append(i)
 	return out
 
+## All objects from one launch / breakup event. Debris from a single event
+## shares the launch's international designator prefix (e.g. "1982-092" for
+## Cosmos 1408), which is how a breakup cloud is isolated from the catalog.
+func indices_with_intl_prefix(prefix: String) -> PackedInt32Array:
+	var out := PackedInt32Array()
+	for i in objects.size():
+		if String(objects[i].get("intl_des", "")).begins_with(prefix):
+			out.append(i)
+	return out
+
 ## Epoch spread across the catalog, in days -- shown on the provenance plate
 ## because it is the honest measure of how stale the oldest elements are.
 func epoch_spread_days() -> float:

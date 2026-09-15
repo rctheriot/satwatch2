@@ -13,10 +13,11 @@ reference sub-satellite point is stored in `catalog.json` by the builder rather
 than hardcoded here, so it stays valid across rebuilds.
 
 It also asserts every chapter in the default deck keeps its outermost visible
-object at least 1.5 m from the viewer. `RigController` clamps this at runtime,
-so a bad chapter is silently corrected rather than crashing -- meaning the
-authored framing quietly would not be what reaches the wall. When this check was
-first added, 4 of 7 chapters failed, one at -6.96 m.
+object at least 1.5 m from the viewer, and enough disparity range to read as
+depth. Camera distance is derived per chapter from the outermost visible
+object, so this checks the authored preset rather than agreeing with itself.
+When the check was first added, 4 of 7 chapters failed, one placing content
+6.96 m behind the viewer's head.
 
 ## Lighting frame
 

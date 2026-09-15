@@ -7,7 +7,7 @@ extends RefCounted
 ## hand and impossible to review. Here the whole control scheme is one table.
 ##
 ## The viewer never moves -- every action transforms the CONTENT. See
-## RigController for why.
+## CameraDirector for why the camera, not the content, is what moves.
 
 const RIGHT_STICK_X := JOY_AXIS_RIGHT_X
 const RIGHT_STICK_Y := JOY_AXIS_RIGHT_Y
@@ -28,6 +28,7 @@ static func register() -> void:
 	_action("time_faster",  [_key(KEY_BRACKETRIGHT)], [JOY_BUTTON_RIGHT_SHOULDER])
 	_action("time_slower",  [_key(KEY_BRACKETLEFT)],  [JOY_BUTTON_LEFT_SHOULDER])
 	_action("select_object", [], [JOY_BUTTON_X], [], [MOUSE_BUTTON_RIGHT])
+	_action("toggle_fly", [_key(KEY_F)], [JOY_BUTTON_Y])
 
 static func _key(keycode: Key) -> InputEventKey:
 	var e := InputEventKey.new()

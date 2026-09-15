@@ -11,8 +11,8 @@ const RE_KM := 6378.137
 const PX_PER_MM := 4800.0 / 6047.0
 
 static func _parallax_mm(z: float) -> float:
-	return RigController.EYE_SEPARATION \
-		* (1.0 - RigController.WALL_DISTANCE / z) * 1000.0
+	return CameraDirector.EYE_SEPARATION \
+		* (1.0 - CameraDirector.WALL_DISTANCE / z) * 1000.0
 
 var failures := 0
 
@@ -33,6 +33,7 @@ func _init() -> void:
 	_check_altitudes(store, catalog, clock)
 	_check_geo_stationarity(store, catalog, clock)
 	_check_chapter_clearance(catalog)
+	_check_camera_aim()
 
 	print("\n%s" % ("ALL CHECKS PASSED" if failures == 0 else "%d CHECK(S) FAILED" % failures))
 	quit(1 if failures > 0 else 0)
@@ -42,15 +43,15 @@ func _ok(label: String, pass_: bool, detail: String) -> void:
 	if not pass_:
 		failures += 1
 
-## Every authored chapter must keep all its visible content outside the stereo
-## comfort floor. RigController clamps this at runtime, so a bad chapter would
-## be silently corrected rather than crash -- meaning the authored framing would
-## quietly not be what appears on the wall. Worse, if the clamp itself were ever
-## wrong, the failure is viewer discomfort at a briefing, not a visible bug.
-## Nothing else in the suite exercises this.
+## Every authored chapter must frame its content outside the stereo comfort
+## floor, and give enough disparity range to actually read as depth.
+##
+## Camera distance is derived per chapter from the outermost visible object, so
+## this checks the authored preset rather than re-implementing the rule and
+## agreeing with itself.
 func _check_chapter_clearance(catalog: CatalogStore) -> void:
 	print("\nChapter framing and stereo depth (fusion floor %.2f m):"
-		% RigController.MIN_CONTENT_DISTANCE)
+		% CameraDirector.MIN_CONTENT_DISTANCE)
 	var deck := ChapterDeck.new()
 	var chapters: Array[Chapter] = deck._default_deck()
 	for c in chapters:
@@ -60,28 +61,24 @@ func _check_chapter_clearance(catalog: CatalogStore) -> void:
 				continue
 			var r: float = float(o.get("max_radius_re", 1.0))
 			max_r = maxf(max_r, 1.0 + (r - 1.0) * c.altitude_exaggeration)
-		# Same derivation the runtime uses, so this checks the authored chapter
-		# rather than re-implementing the rule and agreeing with itself.
-		var dist := RigController.safe_center_distance(
-			c.center_distance, c.rig_scale, max_r, 0.55)
-		var nearest := dist - max_r * c.rig_scale
-		var globe_deg := 2.0 * rad_to_deg(atan(c.rig_scale / dist))
-		# Parallax at the nearest point. The shell overruns a 2.04 m wall in
-		# every chapter worth looking at, so it is always cut by the frame edge;
-		# what keeps that harmless is the cut content sitting near the wall
-		# plane rather than floating well in front of it.
+		var radius_m := max_r * c.content_scale
+		var dist: float = c.camera_distance
+		if dist <= 0.0:
+			dist = ChapterDeck.preset_distance(radius_m)
+
+		var nearest := dist - radius_m
 		var p_near := _parallax_mm(nearest)
-		var p_far := _parallax_mm(dist + max_r * c.rig_scale)
-		# Disparity RANGE is what actually produces depth. Human stereo threshold
-		# is ~10 arcsec, which at the wall is ~0.01 mm of parallax, so anything
-		# above a millimetre or two is richly stereoscopic.
+		var p_far := _parallax_mm(dist + radius_m)
+		# Disparity RANGE is what produces depth. Human stereo threshold is
+		# ~10 arcsec, about 0.01 mm of parallax at the wall, so anything above a
+		# millimetre or two is richly stereoscopic.
 		var range_mm := p_far - p_near
-		var range_px := range_mm * PX_PER_MM
-		var ok := nearest >= RigController.MIN_CONTENT_DISTANCE \
+		var globe_deg := 2.0 * rad_to_deg(atan(c.content_scale / dist))
+		var ok := nearest >= CameraDirector.MIN_CONTENT_DISTANCE \
 			and p_near > -12.0 and range_mm > 5.0
 		_ok("%-16s" % c.title, ok,
 			"globe %.0f deg, parallax %+.1f..%+.1f mm, depth range %.0f mm (%.0f px)"
-				% [globe_deg, p_near, p_far, range_mm, range_px])
+				% [globe_deg, p_near, p_far, range_mm, range_mm * PX_PER_MM])
 	deck.free()
 
 ## Right ascension / declination of a point in the inertial (Godot-mapped TEME)
@@ -194,3 +191,26 @@ func _check_geo_stationarity(store: EphemerisStore, catalog: CatalogStore,
 	# this would be tens of degrees.
 	_ok("station-kept GEO longitude drift", worst < 0.5,
 		"worst drift %.4f deg over 50 min across %d objects" % [worst, checked])
+
+## The camera must actually point at what a chapter claims to frame.
+##
+## A sign error in the pitch leaves the subject low in frame rather than
+## visibly broken, so check the aim directly: build the pose CameraDirector
+## produces, then confirm the head's forward axis points at the target.
+func _check_camera_aim() -> void:
+	print("\nCamera aim (head forward must point at the orbit target):")
+	var worst := 0.0
+	for az_deg in [0.0, 90.0, 210.0]:
+		for el_deg in [-60.0, -20.0, 0.0, 25.0, 70.0]:
+			var az := deg_to_rad(az_deg)
+			var el := deg_to_rad(el_deg)
+			var dist := 4.4
+			var dir := Vector3(-sin(az) * cos(el), -sin(el), -cos(az) * cos(el))
+			var eye := -dir * dist                       # target at origin
+			# The pose CameraDirector writes, and the basis the addon derives.
+			var head_basis := Basis(Vector3.UP, az) * Basis(Vector3.RIGHT, -el)
+			var forward := -head_basis.z
+			var to_target := (Vector3.ZERO - eye).normalized()
+			worst = maxf(worst, rad_to_deg(forward.angle_to(to_target)))
+	_ok("aim error across azimuth/elevation", worst < 0.01,
+		"worst %.6f deg off target" % worst)

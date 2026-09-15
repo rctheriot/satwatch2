@@ -16,10 +16,14 @@ extends Node3D
 ## and the additive point shader depth-TESTS even though it does not depth-WRITE.
 ## That reads as consistent depth rather than as UI being overdrawn.
 
+## All panel coordinates are HEAD-RELATIVE: main.gd sets this node's global
+## transform from the camera pivot every frame, so the panels stay fixed on the
+## physical wall while the camera flies. The pivot sits at eye height, so y = 0
+## here is eye level, and -z is straight ahead.
 const PANEL_Z := -2.45
 const PANEL_X := 2.22
-const TOP_Y := 2.05
-const BOTTOM_TOP_EDGE := 1.43   ## Bottom panels are top-aligned here.
+const TOP_Y := 0.41             ## Eye-relative; 2.05 m above the floor.
+const BOTTOM_TOP_EDGE := -0.21  ## Bottom panels are top-aligned here.
 
 var left: WorldPanel
 var right: WorldPanel
@@ -34,6 +38,8 @@ var _detail_name: Label
 var _time_label: Label
 var _rate_label: Label
 var _exaggeration_label: Label
+var _comfort_label: Label
+var _comfort_warned := false
 
 func build(catalog: CatalogStore) -> void:
 	var top := Vector2(1.52, 1.05)
@@ -104,6 +110,8 @@ func _build_left(catalog: CatalogStore) -> Control:
 	col.add_child(PanelTheme.rule())
 	var total: int = catalog.objects.size()
 	col.add_child(PanelTheme.label("%d TRACKED OBJECTS" % total, 28))
+	_comfort_label = PanelTheme.label("", 22, PanelTheme.WARN)
+	col.add_child(_comfort_label)
 	return bg
 
 func _build_right() -> Control:
@@ -180,6 +188,20 @@ func set_exaggeration(k: float) -> void:
 	_exaggeration_label.text = "" if is_equal_approx(k, 1.0) \
 		else "ALTITUDE EXAGGERATED x%.1f — orbital radii are not to scale." % k
 	provenance.set_update_always(false)
+
+## Nearest visible content, in metres from the eye. Free navigation is allowed
+## to fly inside the shell, so rather than blocking the camera we say when the
+## view has gone past comfortable fusion -- the presenter can then decide.
+func set_comfort(nearest_m: float) -> void:
+	var warn := nearest_m < CameraDirector.MIN_CONTENT_DISTANCE
+	if warn == _comfort_warned:
+		return
+	_comfort_warned = warn
+	_comfort_label.text = "" if not warn else \
+		"CLOSE VIEW — %.0f mm parallax, past comfortable fusion" \
+			% CameraDirector.parallax_mm(maxf(nearest_m, 0.05))
+	left.set_update_always(false)
+
 
 func set_time(utc: String, rate: String) -> void:
 	_time_label.text = utc

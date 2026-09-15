@@ -1,9 +1,10 @@
-[gd_scene load_steps=21 format=3 uid="uid://d4m7g1ny1xiu3"]
+[gd_scene load_steps=22 format=3 uid="uid://d4m7g1ny1xiu3"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://d2mxktnyjcc1a" path="res://addons/stereo_wall_display/stereo_wall_display.gd" id="2_stereo"]
 [ext_resource type="Script" path="res://scripts/sim_clock.gd" id="3_clock"]
-[ext_resource type="Script" path="res://scripts/rig_controller.gd" id="4_rig"]
+[ext_resource type="Script" path="res://scripts/content_rig.gd" id="4_rig"]
+[ext_resource type="Script" path="res://scripts/camera_director.gd" id="13_cam"]
 [ext_resource type="Script" path="res://scripts/satellite_field.gd" id="5_field"]
 [ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6_hud"]
 [ext_resource type="Script" path="res://scripts/selection.gd" id="7_sel"]
@@ -99,12 +100,14 @@ shadow_enabled = false
 script = ExtResource("3_clock")
 rate_index = 2
 
+[node name="CameraDirector" type="Node" parent="."]
+script = ExtResource("13_cam")
+orbit_speed = 1.8
+dolly_speed = 1.4
+
 [node name="EarthRig" type="Node3D" parent="."]
 script = ExtResource("4_rig")
-orbit_speed = 1.6
-dolly_speed = 0.9
-center_distance = 3.0
-rig_scale = 0.75
+content_scale = 1.45
 
 [node name="EarthMesh" type="MeshInstance3D" parent="EarthRig"]
 mesh = SubResource("SphereMesh_earth")

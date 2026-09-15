@@ -14,9 +14,9 @@ signal selection_changed(catalog_index: int)
 const PICK_CONE_RAD := 0.035
 
 var field: SatelliteField
-var rig: RigController
+var rig: ContentRig
 var catalog: CatalogStore
-var head_position: Vector3 = Vector3(0.0, 1.64, 0.0)
+var camera: CameraDirector
 var clock: SimClock
 
 var selected: int = -1
@@ -40,10 +40,6 @@ func _build_reticle() -> void:
 	m.albedo_color = Color(1.0, 1.0, 1.0, 0.55)
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_reticle.material_override = m
-	_reticle.rotation.x = PI / 2.0
-	# On the wall plane, so it fuses at the same depth as the physical screen and
-	# stays comfortable to look at for long stretches.
-	_reticle.position = head_position + Vector3(0.0, 0.0, -RigController.WALL_DISTANCE)
 	add_child(_reticle)
 
 func _build_marker() -> void:
@@ -82,8 +78,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _pick() -> void:
 	if field == null or field.active.is_empty():
 		return
-	var origin := head_position
-	var dir := (_reticle.global_position - origin).normalized()
+	var head := camera.head_transform()
+	var origin := head.origin
+	var dir := -head.basis.z
 	var t: float = _clock_time()
 
 	var best := -1
@@ -110,6 +107,13 @@ func _clock_time() -> float:
 	return clock.now_unix if clock != null else 0.0
 
 func _process(_delta: float) -> void:
+	# The reticle rides the head so it stays centred on the wall, fused at the
+	# physical screen depth where it is comfortable to rest the eyes.
+	if camera != null:
+		var head := camera.head_transform()
+		_reticle.global_transform = Transform3D(
+			head.basis * Basis(Vector3.RIGHT, PI / 2.0),
+			head.origin - head.basis.z * CameraDirector.WALL_DISTANCE)
 	if selected < 0 or field == null:
 		return
 	# Labels must track their target's depth exactly. A label left at screen
@@ -118,6 +122,6 @@ func _process(_delta: float) -> void:
 	var world: Vector3 = rig.to_global(field.rendered_position(selected, _clock_time()))
 	_marker.global_position = world
 	_label.global_position = world + Vector3(0.0, 0.06, 0.0)
-	# Keep the marker a constant apparent size as the rig scales between chapters.
-	var s: float = clampf(rig.rig_scale, 0.05, 2.0)
-	_marker.scale = Vector3.ONE * (0.75 / maxf(s, 0.05)) * s
+	# Constant apparent size regardless of how far the camera has dollied.
+	var d: float = maxf(camera.distance_to(world), 0.2)
+	_marker.scale = Vector3.ONE * d * 0.035

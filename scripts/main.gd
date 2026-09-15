@@ -14,18 +14,15 @@ extends Node3D
 const EPHEMERIS_PATH := "res://data/ephemeris.bin"
 const CATALOG_PATH := "res://data/catalog.json"
 
-## Viewer head position. Must match StereoWallDisplay: the addon parents its
-## camera pivot at y = 1.64 on the player body at start_position.
-const HEAD := Vector3(0.0, 1.64, 0.0)
-
 @onready var clock: SimClock = $SimClock
-@onready var rig: RigController = $EarthRig
+@onready var rig: ContentRig = $EarthRig
 @onready var earth: MeshInstance3D = $EarthRig/EarthMesh
 @onready var atmosphere: MeshInstance3D = $EarthRig/Atmosphere
 @onready var field: SatelliteField = $EarthRig/SatelliteField
 @onready var hud: Hud = $UIRig
 @onready var selection: SelectionController = $Selection
 @onready var deck: ChapterDeck = $ChapterDeck
+@onready var camera: CameraDirector = $CameraDirector
 @onready var sun_light: DirectionalLight3D = $Sun
 @onready var wall: Node = $StereoWallDisplay
 
@@ -63,7 +60,10 @@ func _ready() -> void:
 
 	field.setup(store, catalog.objects)
 	rig.field = field
-	rig.head_position = HEAD
+
+	camera.wall = wall
+	camera.target = rig.global_position
+	camera.set_mode(CameraDirector.Mode.ORBIT)
 
 	hud.build(catalog)
 
@@ -71,9 +71,10 @@ func _ready() -> void:
 	selection.rig = rig
 	selection.catalog = catalog
 	selection.clock = clock
-	selection.head_position = HEAD
+	selection.camera = camera
 	selection.selection_changed.connect(_on_selection_changed)
 
+	deck.camera = camera
 	deck.rig = rig
 	deck.field = field
 	deck.catalog = catalog
@@ -166,16 +167,23 @@ func _process(_delta: float) -> void:
 	# globe slid the terminator across the continents and appeared to change the
 	# time of day. Rotating it into world space with the rig fixes that: drag now
 	# reads as moving around a fixed, correctly-lit Earth.
+	# The content sits at the origin with an identity basis, so inertial vectors
+	# need no correction -- the camera moves instead of the world. The rig basis
+	# is still applied rather than assumed, so this stays correct if the content
+	# is ever rotated again.
 	var frame := rig.global_transform.basis.orthonormalized()
 	var sun := frame * clock.sun_direction()
 	_earth_material.set_shader_parameter("sun_direction", sun)
 	_atmo_material.set_shader_parameter("sun_direction", sun)
-	_sat_material.set_shader_parameter("rig_scale", rig.rig_scale)
+	_sat_material.set_shader_parameter("rig_scale", rig.content_scale)
 	sun_light.look_at_from_position(sun * 50.0, Vector3.ZERO, Vector3.UP)
-	# Same reasoning for the starfield: sampling by the inverse rig rotation
-	# pins the stars to the inertial frame, so they sweep past as you orbit
-	# instead of sitting fixed behind a turning Earth.
 	_sky_material.set_shader_parameter("frame_inverse", Basis(frame).inverse())
+
+	# UI rides the head so the panels stay put on the physical wall as the
+	# camera flies. They are authored in head-relative coordinates.
+	hud.global_transform = camera.head_transform()
+	hud.set_comfort(camera.eye_position().distance_to(rig.global_position)
+		- rig.content_radius_m())
 
 	hud.set_time(clock.utc_string(), clock.rate_label())
 
@@ -192,6 +200,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		clock.step_rate(1)
 	elif event.is_action_pressed("time_slower"):
 		clock.step_rate(-1)
+	elif event.is_action_pressed("toggle_fly"):
+		camera.toggle_mode()
 
 func _show_missing_data_notice() -> void:
 	# Deliberately a 3D label, not a CanvasLayer: on the wall a CanvasLayer is
@@ -199,6 +209,6 @@ func _show_missing_data_notice() -> void:
 	var l := Label3D.new()
 	l.text = "No ephemeris.\n\nRun:  tools/fetch_gp.py  then  tools/build_ephemeris.py"
 	l.font_size = 96
-	l.position = HEAD + Vector3(0.0, 0.0, -2.4)
+	l.position = Vector3(0.0, 1.64, -2.4)
 	l.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 	add_child(l)

@@ -41,7 +41,7 @@ var _highlight: PackedFloat32Array                  ## Per-catalog-object bright
 ## per-frame work and inflates the very number it is trying to measure.
 var last_update_usec: int = 0
 
-## Cached outermost exaggerated radius, in Earth radii. RigController needs this
+## Cached outermost exaggerated radius, in Earth radii. ContentRig needs this
 ## every frame for the stereo comfort clamp, but it only changes when the filter
 ## or the exaggeration changes -- recomputing it per frame meant 20k dictionary
 ## lookups every frame at the full-catalog chapter, for an answer that was
@@ -99,7 +99,7 @@ func set_highlight(indices: PackedInt32Array, dim_others: float = 0.15) -> void:
 
 ## Outermost radius among the currently visible objects, after exaggeration.
 ## This is what decides how close the field comes to the viewer's face, so
-## RigController derives the maximum safe scale from it.
+## ContentRig and ChapterDeck derive camera framing from it.
 func max_content_radius() -> float:
 	if _radius_dirty:
 		_max_radius = 1.0
