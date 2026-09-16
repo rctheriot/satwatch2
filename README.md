@@ -445,6 +445,15 @@ M1 Max, full catalog, `-- --benchmark 6 --chapter 1`:
 | Chapter 8 (surveillance) | 17.6 ms | 57 |
 | Chapter 9 (aircraft + trails) | 21.3 ms | 47 |
 
+| Chapter 9 (jet stream, 4,500 particles) | 15.6 ms | 64 |
+
+**Measure with the machine cool.** `update_positions` does identical work in
+every chapter, so the benchmark prints it as a thermal probe: if it drifts
+between runs, the laptop is throttling and the comparison is worthless. A
+back-to-back sweep produced 15 to 56 fps for the *same* configuration before
+that was noticed. Two stable runs per configuration, with a pause between, or
+the numbers are fiction.
+
 The surveillance and aircraft chapters are the two heavy ones and both are CPU
 bound in GDScript — visibility testing and dead-reckoning respectively, not fill.
 A compute-shader path would remove both. Note the benchmark harness only started

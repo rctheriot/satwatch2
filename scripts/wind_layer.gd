@@ -242,5 +242,5 @@ func summary() -> String:
 
 ## Colour key for the panel, in the units a forecaster uses.
 static func speed_legend() -> String:
-	return "violet <15 · magenta 30 · orange 50 · white %.0f m/s" \
+	return "blue <15 · green 27 · yellow 39 · orange 52 · red %.0f m/s" \
 		% SPEED_FULL_SCALE_MS

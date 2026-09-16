@@ -82,6 +82,12 @@ func _report() -> void:
 			_percentile(_frames, 0.99)])
 	print("  implied FPS       mean %.1f  p95 %.1f"
 		% [1000.0 / maxf(mean, 0.001), 1000.0 / maxf(_percentile(_frames, 0.95), 0.001)])
+	# SatelliteField does identical work in every chapter, so this figure is
+	# also a THERMAL PROBE. If it drifts between runs, the machine is throttling
+	# and any comparison between them is meaningless -- a back-to-back sweep on
+	# a laptop produced 15 to 56 fps for the same configuration, and it was this
+	# number moving 9.9 to 28.8 ms that gave it away. Let the machine cool and
+	# check this is stable before trusting a comparison.
 	if not _update_us.is_empty():
 		var um := 0.0
 		for u in _update_us:

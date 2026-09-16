@@ -26,20 +26,26 @@ uniform float speed_full_scale = 0.35;
 varying float v_along;
 varying float v_speed;
 
-// Monotonic in lightness, so the ordering survives greyscale and colour-blind
-// viewing: deep violet (calm) through magenta and orange to near-white.
+// Blue through red, the standard meteorological wind-speed ramp -- the scale
+// anyone who reads a forecast chart already knows.
 //
 // The stops sit at meaningful speeds against a 65 m/s full scale, not at even
-// fractions: ~15 m/s where flow becomes organised, 30 m/s where a jet stream is
-// conventionally declared, and 50 m/s where a core is worth routing around.
-// That is why most of the field reads violet-magenta and only the cores go
-// bright -- the colour is saying something, not just filling the ramp.
+// fractions: ~15 m/s where flow becomes organised, ~30 where a jet stream is
+// conventionally declared, ~50 where a core is worth routing around, red at 65
+// and above. That is why most of the field reads blue-green and only the cores
+// go hot -- the colour is saying something, not just filling the ramp.
+//
+// This ramp varies mostly in hue, so it does not survive greyscale and is
+// harder for a colour-blind viewer than a lightness ramp would be. Trail LENGTH
+// carries the same quantity for exactly that reason: speed is encoded twice,
+// and the redundant channel is one that always reads.
 vec3 speed_ramp(float t) {
-	vec3 c = mix(vec3(0.20, 0.09, 0.42), vec3(0.58, 0.18, 0.78),
-		smoothstep(0.0, 0.23, t));                       // to ~15 m/s
-	c = mix(c, vec3(1.00, 0.38, 0.52), smoothstep(0.20, 0.46, t));  // to ~30
-	c = mix(c, vec3(1.00, 0.72, 0.30), smoothstep(0.44, 0.77, t));  // to ~50
-	c = mix(c, vec3(1.00, 0.99, 0.94), smoothstep(0.74, 1.0, t));   // core
+	vec3 c = mix(vec3(0.08, 0.28, 0.85), vec3(0.10, 0.72, 0.98),
+		smoothstep(0.0, 0.23, t));                                  // blue -> cyan
+	c = mix(c, vec3(0.28, 0.92, 0.48), smoothstep(0.20, 0.42, t));  // green, ~27
+	c = mix(c, vec3(0.98, 0.92, 0.25), smoothstep(0.40, 0.60, t));  // yellow, ~39
+	c = mix(c, vec3(1.00, 0.55, 0.14), smoothstep(0.57, 0.80, t));  // orange, ~52
+	c = mix(c, vec3(1.00, 0.18, 0.16), smoothstep(0.78, 1.0, t));   // red, 65+
 	return c;
 }
 

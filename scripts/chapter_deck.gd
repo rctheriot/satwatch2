@@ -197,7 +197,9 @@ func add_wind_chapter(layer: WindLayer) -> void:
 	c.subtitle = "250 hPa winds, peak %.0f km/h" % (layer.peak_speed_ms * 3.6)
 	c.explanation = """Streamlines through the real 250 hPa wind field — about 10.5 kilometres up, which is airliner cruise altitude.
 
-Colour is wind speed, on a fixed scale so it means the same thing every day: violet below 15 m/s, magenta near 30 where a jet stream is conventionally declared, orange near 50, white at 65 and above. Trail length is speed too — each streak is seven hours of travel, so the fast air draws the long streaks.
+Colour is wind speed, on a fixed scale so it means the same thing every day: blue below 15 m/s, green near 27, yellow near 39, orange near 52, red at 65 and above. A jet stream is conventionally declared around 30 m/s — the green-to-yellow transition.
+
+Trail length is speed as well. Each streak is seven hours of travel, so the fastest air draws the longest streaks whatever the colour is doing.
 
 These are not decoration. A jet stream core can exceed 300 km/h, and flying with it or against it is the difference between two very different flight plans — transit time, fuel load, and sometimes whether a route closes altogether.
 
