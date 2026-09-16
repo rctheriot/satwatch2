@@ -34,12 +34,15 @@ const SITES: Array = [
 	["Cape Cod SFS, MA",       41.75,  -70.54, Kind.RADAR,    5500.0,  3.0],
 	["Space Fence, Kwajalein",  9.40,  167.48, Kind.RADAR,    5500.0,  5.0],
 	["ALTAIR, Kwajalein",       8.72,  167.73, Kind.RADAR,    4000.0,  5.0],
-	["GEODSS Socorro, NM",     33.82, -106.66, Kind.OPTICAL, 45000.0, 20.0],
-	["GEODSS Diego Garcia",    -7.41,   72.45, Kind.OPTICAL, 45000.0, 20.0],
-	["GEODSS Maui, HI",        20.71, -156.26, Kind.OPTICAL, 45000.0, 20.0],
-	["Ascension Island",       -7.97,  -14.40, Kind.OPTICAL, 45000.0, 20.0],
 	["Globus II, Vardo, NO",   70.37,   31.13, Kind.RADAR,    4000.0,  3.0],
 ]
+## The optical (GEODSS) sites this list used to carry -- Socorro NM, Diego
+## Garcia, Maui HI, Ascension Island -- were removed from the demo entirely
+## rather than filtered at render time: they need a separate darkness
+## constraint that read as a confusing "why is this one blank" state to a
+## general audience, and the radar coverage alone already carries the chapter.
+## Kind.OPTICAL and every branch that handles it are left in place, unused,
+## in case that changes.
 
 const RE_KM := 6378.137
 

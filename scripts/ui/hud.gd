@@ -23,14 +23,12 @@ extends Node3D
 const PANEL_Z := -2.45
 const PANEL_X := 2.22
 const TOP_Y := 0.41             ## Eye-relative; 2.05 m above the floor.
-const BOTTOM_TOP_EDGE := -0.50  ## Time bar is top-aligned here.
 
-## The left panel is now a static catalog key -- it does not change between
-## chapters -- so it stays short. The right panel carries the chapter title
-## and the explanation, which is the thing a general audience actually reads,
-## so it gets the rest of the gutter's height.
-const LEFT_PANEL_HEIGHT := 0.62
-const RIGHT_PANEL_HEIGHT := 1.80
+## Left and right are now both full-height gutter panels: left carries the
+## catalog key, the live clock, and the control scheme; right carries the
+## chapter title and explanation. Same height keeps their tops AND bottoms
+## aligned, which reads as one layout rather than two unrelated boxes.
+const PANEL_HEIGHT := 1.80
 
 ## Spelled out for a general audience. The chapter titles already say these in
 ## full the first time; this is the one place they are looked up afterward.
@@ -41,9 +39,30 @@ const REGIME_NAMES := {
 	"HEO": "Highly Elliptical Orbit",
 }
 
+## Second column: action, then the physical control. The last row is shared
+## between both schemes rather than duplicated in each list below.
+const KEYBOARD_CONTROLS := [
+	["Drag mouse", "Orbit the globe"],
+	["Scroll wheel, or W / S", "Zoom in and out"],
+	["Left / Right arrows", "Change chapter"],
+	["Space", "Pause or resume time"],
+	["[ and ]", "Slow down or speed up time"],
+	["F", "Toggle free-fly mode"],
+	["R", "Reset the view"],
+	["Esc", "Quit"],
+]
+const GAMEPAD_CONTROLS := [
+	["Right stick", "Orbit the globe"],
+	["Left stick", "Zoom in and out"],
+	["D-pad left / right", "Change chapter"],
+	["A button", "Pause or resume time"],
+	["Shoulder buttons", "Slow down or speed up time"],
+	["Y button", "Toggle free-fly mode"],
+]
+const SWITCH_ROW := ["H, or X button", "Switch these instructions"]
+
 var left: WorldPanel
 var right: WorldPanel
-var time_bar: WorldPanel
 
 var _chapter_title: Label
 var _chapter_sub: Label
@@ -54,25 +73,21 @@ var _time_label: Label
 var _rate_label: Label
 var _loop_caption: Label
 var _loop_bar: ProgressBar
+var _controls_heading: Label
+var _controls_col: VBoxContainer
 var _site_signature := ""
+var _gamepad_controls := false
 
 func build(catalog: CatalogStore) -> void:
-	var side := Vector2(1.52, LEFT_PANEL_HEIGHT)
-	var side_y := TOP_Y - (LEFT_PANEL_HEIGHT - 1.05) * 0.5
-	left = _make_panel(side, Vector3(-PANEL_X, side_y, PANEL_Z), _build_left(catalog))
+	var size := Vector2(1.52, PANEL_HEIGHT)
+	var y := TOP_Y - (PANEL_HEIGHT - 1.05) * 0.5
+	left = _make_panel(size, Vector3(-PANEL_X, y, PANEL_Z), _build_left(catalog))
+	right = _make_panel(size, Vector3(PANEL_X, y, PANEL_Z), _build_right())
 
-	var right_size := Vector2(1.52, RIGHT_PANEL_HEIGHT)
-	var right_y := TOP_Y - (RIGHT_PANEL_HEIGHT - 1.05) * 0.5
-	right = _make_panel(right_size, Vector3(PANEL_X, right_y, PANEL_Z), _build_right())
-
-	var time_size := Vector2(1.52, 0.34)
-	time_bar = _make_panel(time_size,
-		Vector3(-PANEL_X, BOTTOM_TOP_EDGE - time_size.y * 0.5, PANEL_Z),
-		_build_time_bar())
-
-	# The left panel never changes after this, so it renders once and stops.
-	# The right panel changes on every chapter and re-renders itself there.
-	left.set_update_always(false)
+	# The right panel changes only on a chapter transition, so it renders once
+	# and stops. The left panel now carries the live clock and loop bar, so it
+	# has to keep rendering every frame -- seeing the last digit of a UTC clock
+	# holding still would be a worse tell than the fill cost of redrawing it.
 	right.set_update_always(false)
 
 func _make_panel(size: Vector2, pos: Vector3, content: Control) -> WorldPanel:
@@ -107,7 +122,22 @@ func _swatch_row(color: Color, text: String, label_size: int,
 		row.add_child(PanelTheme.label(value, label_size, PanelTheme.ACCENT))
 	return row
 
-## Static: the catalog totals do not depend on which chapter is showing.
+func _text_row(left_text: String, right_text: String) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	row.add_child(PanelTheme.label(left_text, 20, PanelTheme.ACCENT))
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+	var r := PanelTheme.label(right_text, 20)
+	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	r.custom_minimum_size = Vector2(560, 0)
+	r.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	row.add_child(r)
+	return row
+
+## Catalog key, live clock, and controls: everything that does not depend on
+## which chapter is showing.
 func _build_left(catalog: CatalogStore) -> Control:
 	var bg := PanelTheme.backdrop()
 	var col := _column()
@@ -118,10 +148,46 @@ func _build_left(catalog: CatalogStore) -> Control:
 		col.add_child(_swatch_row(PanelTheme.REGIME_COLORS[regime],
 			REGIME_NAMES[regime], 26,
 			str(int(catalog.regime_counts.get(regime, 0)))))
+	col.add_child(PanelTheme.label(
+		"%s tracked objects total" % _comma(catalog.objects.size()), 22,
+		PanelTheme.DIM))
 
 	col.add_child(PanelTheme.rule())
-	var total: int = catalog.objects.size()
-	col.add_child(PanelTheme.label("%s tracked objects total" % _comma(total), 26))
+	var time_row := HBoxContainer.new()
+	time_row.add_theme_constant_override("separation", 30)
+	col.add_child(time_row)
+	_time_label = PanelTheme.label("", 32)
+	time_row.add_child(_time_label)
+	var spacer := Control.new()
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	time_row.add_child(spacer)
+	_rate_label = PanelTheme.label("", 32, PanelTheme.ACCENT)
+	time_row.add_child(_rate_label)
+
+	_loop_caption = PanelTheme.label("", 20, PanelTheme.DIM)
+	col.add_child(_loop_caption)
+
+	_loop_bar = ProgressBar.new()
+	_loop_bar.min_value = 0.0
+	_loop_bar.max_value = 1.0
+	_loop_bar.show_percentage = false
+	_loop_bar.custom_minimum_size = Vector2(0, 14)
+	var track := StyleBoxFlat.new()
+	track.bg_color = Color(1, 1, 1, 0.12)
+	track.set_corner_radius_all(4)
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = PanelTheme.ACCENT
+	fill.set_corner_radius_all(4)
+	_loop_bar.add_theme_stylebox_override("background", track)
+	_loop_bar.add_theme_stylebox_override("fill", fill)
+	col.add_child(_loop_bar)
+
+	col.add_child(PanelTheme.rule())
+	_controls_heading = PanelTheme.label("", 24, PanelTheme.DIM)
+	col.add_child(_controls_heading)
+	_controls_col = _column(6)
+	col.add_child(_controls_col)
+	_render_controls()
 	return bg
 
 func _build_right() -> Control:
@@ -153,40 +219,26 @@ func _build_right() -> Control:
 	col.add_child(_site_rows)
 	return bg
 
-func _build_time_bar() -> Control:
-	var bg := PanelTheme.backdrop()
-	var col := _column(6)
-	bg.add_child(col)
+## Rebuilds the control list for whichever scheme is currently selected.
+## Called once at startup and again each time the viewer switches schemes --
+## see toggle_controls_scheme().
+func _render_controls() -> void:
+	_controls_heading.text = ("CONTROLS: GAMEPAD" if _gamepad_controls
+		else "CONTROLS: KEYBOARD AND MOUSE")
+	for child in _controls_col.get_children():
+		child.queue_free()
+	var rows: Array = GAMEPAD_CONTROLS if _gamepad_controls else KEYBOARD_CONTROLS
+	for r in rows:
+		_controls_col.add_child(_text_row(r[0], r[1]))
+	_controls_col.add_child(_text_row(SWITCH_ROW[0], SWITCH_ROW[1]))
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 30)
-	col.add_child(row)
-	_time_label = PanelTheme.label("", 36)
-	row.add_child(_time_label)
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
-	_rate_label = PanelTheme.label("", 36, PanelTheme.ACCENT)
-	row.add_child(_rate_label)
-
-	_loop_caption = PanelTheme.label("", 22, PanelTheme.DIM)
-	col.add_child(_loop_caption)
-
-	_loop_bar = ProgressBar.new()
-	_loop_bar.min_value = 0.0
-	_loop_bar.max_value = 1.0
-	_loop_bar.show_percentage = false
-	_loop_bar.custom_minimum_size = Vector2(0, 14)
-	var track := StyleBoxFlat.new()
-	track.bg_color = Color(1, 1, 1, 0.12)
-	track.set_corner_radius_all(4)
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = PanelTheme.ACCENT
-	fill.set_corner_radius_all(4)
-	_loop_bar.add_theme_stylebox_override("background", track)
-	_loop_bar.add_theme_stylebox_override("fill", fill)
-	col.add_child(_loop_bar)
-	return bg
+## Bound to H / gamepad X in main.gd. There is no pointer in stereo mode (see
+## WorldPanel), so this cannot be a clickable button -- it is a real control
+## in the same sense chapter_next/prev are, just one that changes what the
+## panel says rather than what the globe shows.
+func toggle_controls_scheme() -> void:
+	_gamepad_controls = not _gamepad_controls
+	_render_controls()
 
 static func _comma(n: int) -> String:
 	var s := str(n)

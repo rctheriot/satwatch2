@@ -34,6 +34,36 @@ func _ready() -> void:
 	if chapters.is_empty():
 		chapters = _default_deck()
 
+## _default_deck() runs from _ready(), which for a child node happens before
+## main.gd's own _ready() body has set `catalog` -- and tests call
+## _default_deck() directly with no catalog at all -- so it cannot depend on
+## catalog being available. main.gd calls this afterward, once catalog is
+## actually loaded, to fill in the live Starlink count.
+func refresh_catalog_text() -> void:
+	if catalog == null:
+		return
+	for c in chapters:
+		if c.title != "STARLINK'S CONSTELLATION":
+			continue
+		var starlink_n := catalog.indices_matching_name("STARLINK").size()
+		var leo_n := int(catalog.regime_counts.get("LEO", 0))
+		if leo_n <= 0:
+			return
+		var pct := 100.0 * float(starlink_n) / float(leo_n)
+		c.explanation += "\n\nRight now, %s of the %s tracked objects in low Earth orbit are Starlink satellites, about %d%% of everything up there." \
+			% [_comma(starlink_n), _comma(leo_n), roundi(pct)]
+
+static func _comma(n: int) -> String:
+	var s := str(n)
+	var out := ""
+	var count := 0
+	for i in range(s.length() - 1, -1, -1):
+		out = s[i] + out
+		count += 1
+		if count % 3 == 0 and i != 0:
+			out = "," + out
+	return out
+
 ## Built in code rather than as .tres so the deck is reviewable in one place and
 ## survives a resource re-import.
 ##
@@ -127,11 +157,11 @@ Almost all of the tracked objects are packed into that inner ball. Almost all of
 
 	# --- Specific cases -------------------------------------------------------
 	var starlink := Chapter.new()
-	starlink.title = "ONE CONSTELLATION"
-	starlink.subtitle = "A single operator against everything else in low orbit"
-	starlink.explanation = """Green marks satellites from a single company's constellation, flown together at one altitude as a tightly managed fleet. Blue is every other tracked object in low Earth orbit, at the same scale.
+	starlink.title = "STARLINK'S CONSTELLATION"
+	starlink.subtitle = "One company's satellites against everything else in low orbit"
+	starlink.explanation = """Green marks satellites from Starlink, a single company's constellation, flown together at one altitude as a tightly managed fleet. Blue is every other tracked object in low Earth orbit, at the same scale.
 
-A single operator now accounts for a large share of everything flying in low orbit. That shift happened in under a decade, and it was one company's decision that drove it."""
+This one constellation now accounts for a large share of everything flying in low orbit. That shift happened in under a decade, and it was one company's decision that drove it."""
 	starlink.regimes = ["LEO"]
 	starlink.highlight_name = "STARLINK"
 	starlink.highlight_color = Color(0.36, 1.0, 0.52)
@@ -182,13 +212,15 @@ This is the risk experts worry about most: every fragment becomes its own hazard
 	out.append(collision)
 
 	var sensors := Chapter.new()
-	sensors.title = "WHO IS WATCHING"
-	sensors.subtitle = "What the ground can actually see, right now"
-	sensors.explanation = """Green objects are currently in view of at least one tracking site on the ground. Red objects aren't being seen by anyone at this moment.
+	sensors.title = "THE TRACKING NETWORK"
+	sensors.subtitle = "What ground radar can actually see, right now"
+	sensors.explanation = """Green objects are currently in view of at least one radar site on the ground. Red objects aren't being seen by anyone at this moment.
 
-The wide blue domes are radar coverage, reaching out to a representative range. They look almost flat on top because they nearly are: a radar that can see down to 3 degrees above the horizon covers almost half the sky, which is how a handful of ground stations can watch most of low orbit between them. The amber points are optical telescopes, which stare at a narrow patch of sky and track objects one at a time instead of sweeping a wide fence like radar.
+These are sites in the US Space Surveillance Network: mostly operated by the US Space Force, plus a few run by allied countries hosting a site, like the United Kingdom and Norway. It's one specific network, not every tracking system on Earth. Other countries, including Russia and China, run their own separate networks that aren't shown here.
 
-Notice where the red clusters: coverage is heaviest in the northern hemisphere, and that gap in the south is real. Optical telescopes also need darkness on the ground and sunlight on the target at the same time, so many sit idle whenever that's not the case. The counts shown here come from exact geometry. The coverage domes themselves are representative, not exact sensor specifications, which aren't public."""
+The wide blue domes are each site's coverage, reaching out to a representative range. They look almost flat on top because they nearly are: a radar that can see down to 3 degrees above the horizon covers almost half the sky, which is how a handful of ground sites can watch most of low orbit between them.
+
+Notice where the red clusters: coverage is heaviest in the northern hemisphere, and that gap in the south is real. The counts shown here come from exact geometry. The coverage domes themselves are representative, not exact sensor specifications, which aren't public."""
 	sensors.regimes = ["LEO"]
 	sensors.show_sensors = true
 	# Green in view, red out of view. Both states matter here, so neither is
@@ -203,7 +235,6 @@ Notice where the red clusters: coverage is heaviest in the northern hemisphere, 
 		{"color": sensors.highlight_color, "label": "Currently tracked"},
 		{"color": sensors.base_color, "label": "Not currently tracked"},
 		{"color": PanelTheme.ACCENT, "label": "Radar coverage"},
-		{"color": PanelTheme.WARN, "label": "Optical telescope"},
 	]
 	out.append(sensors)
 

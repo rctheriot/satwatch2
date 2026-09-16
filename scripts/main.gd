@@ -109,12 +109,23 @@ func _ready() -> void:
 	deck.rig = rig
 	deck.field = field
 	deck.catalog = catalog
+	deck.refresh_catalog_text()
 	deck.clock = clock
 	deck.chapter_changed.connect(_on_chapter_changed)
 
 	# Optional layers each add their own chapter only if their data is present.
 	# A chapter that cannot draw its subject is worse than one that is absent:
 	# on a wall, an empty globe reads as the demo being broken.
+	# Aircraft before wind: the jet stream chapter's closing line refers back
+	# to "the aircraft in the previous chapter", which is only true this way
+	# round.
+	if aircraft.load_from(AIRCRAFT_PATH):
+		deck.add_aircraft_chapter(aircraft)
+	else:
+		aircraft.visible = false
+		print("No aircraft snapshot -- run tools/fetch_aircraft.py for the air "
+			+ "domain chapter.")
+
 	if winds.load_from(WINDS_PATH):
 		deck.add_wind_chapter(winds)
 		# Colour is speed, so full scale is set from this field's own peak --
@@ -124,13 +135,6 @@ func _ready() -> void:
 		winds.visible = false
 		print("No wind field -- run tools/fetch_winds.py for the jet stream "
 			+ "chapter.")
-
-	if aircraft.load_from(AIRCRAFT_PATH):
-		deck.add_aircraft_chapter(aircraft)
-	else:
-		aircraft.visible = false
-		print("No aircraft snapshot -- run tools/fetch_aircraft.py for the air "
-			+ "domain chapter.")
 
 	if weather.loaded:
 		deck.add_space_weather_chapter(weather, tec_store.loaded)
@@ -347,6 +351,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		clock.step_rate(-1)
 	elif event.is_action_pressed("toggle_fly"):
 		camera.toggle_mode()
+	elif event.is_action_pressed("toggle_controls_help"):
+		hud.toggle_controls_scheme()
 
 func _show_missing_data_notice() -> void:
 	# Deliberately a 3D label, not a CanvasLayer: on the wall a CanvasLayer is

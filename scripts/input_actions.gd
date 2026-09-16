@@ -28,6 +28,7 @@ static func register() -> void:
 	_action("time_faster",  [_key(KEY_BRACKETRIGHT)], [JOY_BUTTON_RIGHT_SHOULDER])
 	_action("time_slower",  [_key(KEY_BRACKETLEFT)],  [JOY_BUTTON_LEFT_SHOULDER])
 	_action("toggle_fly", [_key(KEY_F)], [JOY_BUTTON_Y])
+	_action("toggle_controls_help", [_key(KEY_H)], [JOY_BUTTON_X])
 
 static func _key(keycode: Key) -> InputEventKey:
 	var e := InputEventKey.new()
