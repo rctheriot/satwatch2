@@ -26,17 +26,19 @@ uniform float terminator_softness : hint_range(0.005, 0.5) = 0.10;
 // none of this, on purpose (see fragment()).
 uniform float ambient_floor : hint_range(0.0, 0.3) = 0.02;
 uniform float ocean_specular : hint_range(0.0, 2.0) = 0.6;
-// Real twilight is not a neutral gray blend -- Rayleigh scattering through the
-// long low-sun path paints a warm band on the day side of the terminator and
-// a cooler one just into the night side. A single warm color peaked exactly
-// at the terminator gets most of that for one uniform's worth of cost.
-uniform vec3 twilight_color : source_color = vec3(1.0, 0.45, 0.22);
-uniform float twilight_intensity : hint_range(0.0, 0.3) = 0.018;
-uniform float twilight_width : hint_range(0.005, 0.15) = 0.02;
 // Calibration only. The UV mapping below is derived, not guessed, so this
 // should stay 0; it exists so a texture that is not exactly centred on the
 // prime meridian can be nudged without touching code.
 uniform float longitude_offset_deg : hint_range(-180.0, 180.0) = 0.0;
+
+// Atmospheric limb haze, keyed to VIEW angle rather than sun angle -- this is
+// the cue that actually reads as "sphere" rather than "lit disc". The sun
+// terminator only shows curvature along one axis; grazing-view haze shows it
+// all the way around the silhouette regardless of where the sun is, which is
+// closer to why a real photo of Earth looks round even in full daylight.
+uniform vec3 haze_color : source_color = vec3(0.55, 0.68, 0.88);
+uniform float haze_intensity : hint_range(0.0, 1.0) = 0.3;
+uniform float haze_power : hint_range(1.0, 8.0) = 4.5;
 
 varying vec3 v_normal_world;
 varying vec3 v_normal_local;
@@ -95,21 +97,22 @@ void fragment() {
 	// there reads as the "whole earth ambiently lit" look this replaces.
 	vec3 color = mix(night_c, lit, day);
 
-	// Twilight band, peaked exactly at the terminator (cos_sun = 0) and
-	// scaled down where the surface itself is bright, so it reads as
-	// atmosphere over the ground rather than a wash on top of it.
-	float twilight = exp(-pow(cos_sun / twilight_width, 4.0));
-	color += twilight_color * twilight * twilight_intensity * (1.0 - lambert);
+	vec3 view = normalize(v_world_pos - CAMERA_POSITION_WORLD);
 
 	// Ocean highlight. Falls back to matte everywhere when no mask is supplied
 	// (hint_default_black), which is the current state -- see assets/README.md.
 	float ocean = texture(ocean_mask, uv).r;
 	if (ocean > 0.001 && day > 0.0) {
-		vec3 view = normalize(v_world_pos - CAMERA_POSITION_WORLD);
 		vec3 refl = reflect(l, n);
 		float spec = pow(max(dot(normalize(refl), view), 0.0), 48.0);
 		color += vec3(spec * ocean * ocean_specular * day);
 	}
+
+	// Limb haze -- see the uniform comment above for why this is keyed to
+	// view angle, not sun angle. Weak but present on the night limb too:
+	// real photos still show a faint scattered glow there.
+	float fresnel = pow(1.0 - clamp(abs(dot(n, view)), 0.0, 1.0), haze_power);
+	color = mix(color, haze_color, fresnel * haze_intensity * mix(0.15, 1.0, day));
 
 	ALBEDO = color;
 }

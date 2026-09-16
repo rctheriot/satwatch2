@@ -21,6 +21,10 @@ const WINDS_PATH := "res://data/winds.json"
 ## tools/find_conjunctions.py is a standalone analysis utility and is not wired
 ## into the demo -- see docs/DATA.md.
 const AURORA_TEXTURE_PATH := "res://data/aurora.png"
+## Clouds slip this fraction of the Earth's own rotation per sidereal day --
+## real jet-stream-level winds are a small delta on top of bulk co-rotation,
+## not an independent speed. Purely a decorative constant, tuned by eye.
+const CLOUD_DRIFT_FRACTION := 0.05
 
 @onready var clock: SimClock = $SimClock
 @onready var rig: ContentRig = $EarthRig
@@ -189,9 +193,9 @@ func _apply_earth_textures() -> void:
 		elif pair[0] == "day_texture":
 			push_warning("Missing %s -- see assets/README.md. Using a flat globe."
 				% pair[1])
-	if ResourceLoader.exists("res://assets/earth_clouds.jpg"):
+	if ResourceLoader.exists("res://assets/earth_clouds.png"):
 		_clouds_material.set_shader_parameter("cloud_texture",
-			load("res://assets/earth_clouds.jpg"))
+			load("res://assets/earth_clouds.png"))
 	else:
 		clouds.visible = false
 
@@ -259,7 +263,13 @@ func _process(_delta: float) -> void:
 	field.update_positions(t)
 	# The Earth spins under the satellites rather than the other way round --
 	# the field stays in TEME, which is what SGP4 actually produces.
-	earth.rotation.y = clock.gmst()
+	var gmst := clock.gmst()
+	earth.rotation.y = gmst
+	# Clouds are a child of EarthMesh, so they already co-rotate with the
+	# ground perfectly. This adds a small SLIP on top, driven by the same
+	# clock as the rotation itself so it stays proportional at any sim rate --
+	# see the uniform's comment in clouds.gdshader for why that matters.
+	_clouds_material.set_shader_parameter("drift_angle", gmst * CLOUD_DRIFT_FRACTION)
 
 	# The wall is fixed, so "orbiting the camera" has to be done by rotating the
 	# content. That is only equivalent to a real orbit if EVERYTHING in the

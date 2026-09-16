@@ -19,9 +19,15 @@ uniform float terminator_softness : hint_range(0.005, 0.5) = 0.14;
 uniform float day_brightness : hint_range(0.0, 2.0) = 1.0;
 uniform float night_brightness : hint_range(0.0, 0.3) = 0.03;
 uniform float opacity : hint_range(0.0, 1.0) = 0.55;
-// Real-time (not sim-time) drift so the deck reads as alive even in chapters
-// that pause or fast-forward the sim clock. Purely decorative.
-uniform float drift_speed : hint_range(-0.01, 0.01) = 0.0012;
+// Longitude slip relative to the ground, in radians, set from main.gd as
+// clock.gmst() * a small fraction. Driving it from the SAME clock that spins
+// the globe (rather than the engine's real wall-clock TIME) matters: this
+// mesh is a child of EarthMesh and already co-rotates with the ground
+// perfectly, so TIME-based drift only reads as motion when sim time runs
+// near real-time. Any time acceleration -- which most chapters use -- made
+// the globe spin far faster than that real-time drift, so the clouds looked
+// welded to the continents instead of sliding across them.
+uniform float drift_angle = 0.0;
 uniform float longitude_offset_deg : hint_range(-180.0, 180.0) = 0.0;
 
 varying vec3 v_normal_world;
@@ -46,7 +52,7 @@ void fragment() {
 	float day = smoothstep(-terminator_softness, terminator_softness, cos_sun);
 
 	vec2 uv = geo_uv(normalize(v_normal_local));
-	uv.x = fract(uv.x + TIME * drift_speed);
+	uv.x = fract(uv.x + drift_angle / (2.0 * PI));
 	float density = texture(cloud_texture, uv).r;
 
 	float brightness = mix(night_brightness, day_brightness, day);

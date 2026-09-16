@@ -6,6 +6,19 @@
 # Python
 .venv/
 
+# earth.glb: a Sketchfab reference model dropped into assets/ for comparison,
+# not used by the scene (see assets/README.md -- only its cloud alpha layer
+# was extracted, as earth_clouds.png, which IS committed). Godot auto-imports
+# anything under res://, which is all these entries are: import byproducts.
+/assets/earth.glb
+/assets/earth.glb.import
+/assets/earth_0.jpg
+/assets/earth_0.jpg.import
+/assets/earth_1.jpg
+/assets/earth_1.jpg.import
+/assets/earth_2.png
+/assets/earth_2.png.import
+
 # Analysis output from tools/find_conjunctions.py; not consumed by the demo.
 /data/conjunctions.json
 
