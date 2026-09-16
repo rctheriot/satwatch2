@@ -1,111 +1,22 @@
-[gd_scene load_steps=29 format=3 uid="uid://d4m7g1ny1xiu3"]
+[gd_scene format=3 uid="uid://d4m7g1ny1xiu3"]
 
-[ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="Script" uid="uid://b2dd0vowtub61" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="Script" uid="uid://d2mxktnyjcc1a" path="res://addons/stereo_wall_display/stereo_wall_display.gd" id="2_stereo"]
-[ext_resource type="Script" path="res://scripts/sim_clock.gd" id="3_clock"]
-[ext_resource type="Script" path="res://scripts/content_rig.gd" id="4_rig"]
-[ext_resource type="Script" path="res://scripts/camera_director.gd" id="13_cam"]
-[ext_resource type="Shader" path="res://shaders/aurora.gdshader" id="15_aurora"]
-[ext_resource type="Script" path="res://scripts/sensor_network.gd" id="16_sensors"]
-[ext_resource type="Script" path="res://scripts/aircraft_layer.gd" id="17_air"]
-[ext_resource type="Shader" path="res://shaders/tec.gdshader" id="18_tec"]
-[ext_resource type="Script" path="res://scripts/wind_layer.gd" id="19_wind"]
-[ext_resource type="Script" path="res://scripts/satellite_field.gd" id="5_field"]
-[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="6_hud"]
-[ext_resource type="Script" path="res://scripts/chapter_deck.gd" id="8_deck"]
-[ext_resource type="Shader" path="res://shaders/earth.gdshader" id="9_earth"]
-[ext_resource type="Shader" path="res://shaders/atmosphere.gdshader" id="10_atmo"]
-[ext_resource type="Shader" path="res://shaders/satellites.gdshader" id="11_sat"]
-[ext_resource type="Shader" path="res://shaders/starfield.gdshader" id="12_sky"]
-
-[sub_resource type="SphereMesh" id="SphereMesh_earth"]
-radius = 1.0
-height = 2.0
-radial_segments = 128
-rings = 64
-
-[sub_resource type="SphereMesh" id="SphereMesh_atmo"]
-radius = 1.025
-height = 2.05
-radial_segments = 96
-rings = 48
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_earth"]
-shader = ExtResource("9_earth")
-shader_parameter/sun_direction = Vector3(1, 0, 0)
-shader_parameter/day_gain = 1.15
-shader_parameter/night_gain = 1.35
-shader_parameter/terminator_softness = 0.1
-shader_parameter/ambient_floor = 0.02
-shader_parameter/ocean_specular = 0.6
-shader_parameter/longitude_offset_deg = 0.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_atmo"]
-shader = ExtResource("10_atmo")
-shader_parameter/rim_color = Color(0.32, 0.6, 1, 1)
-shader_parameter/sun_direction = Vector3(1, 0, 0)
-shader_parameter/rim_power = 2.6
-shader_parameter/intensity = 0.85
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_sat"]
-shader = ExtResource("11_sat")
-shader_parameter/leo_color = Color(0.36, 0.78, 1, 1)
-shader_parameter/meo_color = Color(0.55, 1, 0.62, 1)
-shader_parameter/geo_color = Color(1, 0.78, 0.31, 1)
-shader_parameter/heo_color = Color(1, 0.45, 0.55, 1)
-shader_parameter/highlight_color = Color(1, 0.28, 0.24, 1)
-shader_parameter/highlight_size_boost = 1.45
-shader_parameter/brightness = 1.2
-shader_parameter/point_pixels = 2.8
-shader_parameter/depth_cue = 0.3
-shader_parameter/reference_depth = 4.5
-shader_parameter/min_pixel_size = 1.6
-shader_parameter/faint_alpha_floor = 0.55
-
-[sub_resource type="SphereMesh" id="SphereMesh_aurora"]
-radius = 1.0
-height = 2.0
-radial_segments = 128
-rings = 64
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_aurora"]
-shader = ExtResource("15_aurora")
-shader_parameter/sun_direction = Vector3(1, 0, 0)
-shader_parameter/altitude_re = 0.0188
-shader_parameter/altitude_exaggeration = 2.0
-shader_parameter/intensity = 1.5
-shader_parameter/low_color = Color(0.22, 1, 0.55, 1)
-shader_parameter/high_color = Color(1, 0.25, 0.42, 1)
-shader_parameter/terminator_softness = 0.22
-
-[sub_resource type="SphereMesh" id="SphereMesh_tec"]
-radius = 1.0
-height = 2.0
-radial_segments = 128
-rings = 64
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_tec"]
-shader = ExtResource("18_tec")
-shader_parameter/sun_direction = Vector3(1, 0, 0)
-shader_parameter/altitude_re = 0.0549
-shader_parameter/altitude_exaggeration = 2.0
-shader_parameter/intensity = 0.9
-shader_parameter/floor_fraction = 0.06
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_air"]
-shader = ExtResource("11_sat")
-shader_parameter/leo_color = Color(1, 0.82, 0.35, 1)
-shader_parameter/meo_color = Color(1, 0.82, 0.35, 1)
-shader_parameter/geo_color = Color(1, 0.82, 0.35, 1)
-shader_parameter/heo_color = Color(1, 0.82, 0.35, 1)
-shader_parameter/highlight_color = Color(1, 0.82, 0.35, 1)
-shader_parameter/base_color_override = Color(0, 0, 0, 0)
-shader_parameter/brightness = 1.1
-shader_parameter/point_pixels = 2.8
-shader_parameter/depth_cue = 0.3
-shader_parameter/reference_depth = 4.5
-shader_parameter/min_pixel_size = 1.6
-shader_parameter/faint_alpha_floor = 0.55
+[ext_resource type="Script" uid="uid://7llk4ad5xet1" path="res://scripts/sim_clock.gd" id="3_clock"]
+[ext_resource type="Script" uid="uid://18gkuofenswc" path="res://scripts/content_rig.gd" id="4_rig"]
+[ext_resource type="Script" uid="uid://dkaa5my1pdcuo" path="res://scripts/satellite_field.gd" id="5_field"]
+[ext_resource type="Script" uid="uid://dloqgshx7qfdg" path="res://scripts/ui/hud.gd" id="6_hud"]
+[ext_resource type="Script" uid="uid://derd60mk6fucy" path="res://scripts/chapter_deck.gd" id="8_deck"]
+[ext_resource type="Shader" uid="uid://yf0wjntyhebs" path="res://shaders/earth.gdshader" id="9_earth"]
+[ext_resource type="Shader" uid="uid://td3kaytl2fyf" path="res://shaders/atmosphere.gdshader" id="10_atmo"]
+[ext_resource type="Shader" uid="uid://c3txrax5jfmkl" path="res://shaders/satellites.gdshader" id="11_sat"]
+[ext_resource type="Shader" uid="uid://bbnoxx3xmuxve" path="res://shaders/starfield.gdshader" id="12_sky"]
+[ext_resource type="Script" uid="uid://cd2q7jxv4n4ya" path="res://scripts/camera_director.gd" id="13_cam"]
+[ext_resource type="Shader" uid="uid://mfhj3b8diq0n" path="res://shaders/aurora.gdshader" id="15_aurora"]
+[ext_resource type="Script" uid="uid://cupbxvvj5n27x" path="res://scripts/sensor_network.gd" id="16_sensors"]
+[ext_resource type="Script" uid="uid://gvox2i7mmiot" path="res://scripts/aircraft_layer.gd" id="17_air"]
+[ext_resource type="Shader" uid="uid://cmt5gfraeboxs" path="res://shaders/tec.gdshader" id="18_tec"]
+[ext_resource type="Script" uid="uid://bvfmw1hdu5i7p" path="res://scripts/wind_layer.gd" id="19_wind"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("12_sky")
@@ -114,6 +25,7 @@ shader_parameter/brightness = 0.85
 shader_parameter/coverage = 0.045
 shader_parameter/star_size = 0.13
 shader_parameter/space_tint = Color(0.008, 0.011, 0.022, 1)
+shader_parameter/frame_inverse = Basis(1, 0, 0, 0, 1, 0, 0, 0, 1)
 
 [sub_resource type="Sky" id="Sky_stars"]
 sky_material = SubResource("ShaderMaterial_sky")
@@ -125,87 +37,166 @@ ambient_light_source = 3
 ambient_light_color = Color(0.06, 0.08, 0.12, 1)
 ambient_light_energy = 0.18
 tonemap_mode = 3
-glow_enabled = false
 
-[node name="Main" type="Node3D"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_earth"]
+render_priority = 0
+shader = ExtResource("9_earth")
+shader_parameter/sun_direction = Vector3(1, 0, 0)
+shader_parameter/day_gain = 1.15
+shader_parameter/night_gain = 1.35
+shader_parameter/terminator_softness = 0.1
+shader_parameter/ambient_floor = 0.02
+shader_parameter/ocean_specular = 0.6
+shader_parameter/longitude_offset_deg = 0.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_earth"]
+radius = 1.0
+height = 2.0
+radial_segments = 128
+rings = 64
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_aurora"]
+render_priority = 0
+shader = ExtResource("15_aurora")
+shader_parameter/sun_direction = Vector3(1, 0, 0)
+shader_parameter/altitude_re = 0.0188
+shader_parameter/altitude_exaggeration = 2.0
+shader_parameter/intensity = 1.5
+shader_parameter/low_color = Color(0.22, 1, 0.55, 1)
+shader_parameter/high_color = Color(1, 0.25, 0.42, 1)
+shader_parameter/terminator_softness = 0.22
+
+[sub_resource type="SphereMesh" id="SphereMesh_aurora"]
+radius = 1.0
+height = 2.0
+radial_segments = 128
+rings = 64
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_air"]
+render_priority = 0
+shader = ExtResource("11_sat")
+shader_parameter/leo_color = Color(1, 0.82, 0.35, 1)
+shader_parameter/meo_color = Color(1, 0.82, 0.35, 1)
+shader_parameter/geo_color = Color(1, 0.82, 0.35, 1)
+shader_parameter/heo_color = Color(1, 0.82, 0.35, 1)
+shader_parameter/highlight_color = Color(1, 0.82, 0.35, 1)
+shader_parameter/highlight_size_boost = 1.45
+shader_parameter/base_color_override = Color(0, 0, 0, 0)
+shader_parameter/brightness = 1.1
+shader_parameter/point_pixels = 2.8
+shader_parameter/depth_cue = 0.3
+shader_parameter/reference_depth = 4.5
+shader_parameter/min_pixel_size = 1.6
+shader_parameter/faint_alpha_floor = 0.55
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_tec"]
+render_priority = 0
+shader = ExtResource("18_tec")
+shader_parameter/sun_direction = Vector3(1, 0, 0)
+shader_parameter/altitude_re = 0.0549
+shader_parameter/altitude_exaggeration = 2.0
+shader_parameter/intensity = 0.9
+shader_parameter/floor_fraction = 0.06
+
+[sub_resource type="SphereMesh" id="SphereMesh_tec"]
+radius = 1.0
+height = 2.0
+radial_segments = 128
+rings = 64
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_atmo"]
+render_priority = 0
+shader = ExtResource("10_atmo")
+shader_parameter/rim_color = Color(0.32, 0.6, 1, 1)
+shader_parameter/sun_direction = Vector3(1, 0, 0)
+shader_parameter/rim_power = 2.6
+shader_parameter/intensity = 0.85
+
+[sub_resource type="SphereMesh" id="SphereMesh_atmo"]
+radius = 1.025
+height = 2.05
+radial_segments = 96
+rings = 48
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_sat"]
+render_priority = 0
+shader = ExtResource("11_sat")
+shader_parameter/leo_color = Color(0.36, 0.78, 1, 1)
+shader_parameter/meo_color = Color(0.55, 1, 0.62, 1)
+shader_parameter/geo_color = Color(1, 0.78, 0.31, 1)
+shader_parameter/heo_color = Color(1, 0.45, 0.55, 1)
+shader_parameter/highlight_color = Color(1, 0.28, 0.24, 1)
+shader_parameter/highlight_size_boost = 1.45
+shader_parameter/base_color_override = Color(0, 0, 0, 0)
+shader_parameter/brightness = 1.2
+shader_parameter/point_pixels = 2.8
+shader_parameter/depth_cue = 0.3
+shader_parameter/reference_depth = 4.5
+shader_parameter/min_pixel_size = 1.6
+shader_parameter/faint_alpha_floor = 0.55
+
+[node name="Main" type="Node3D" unique_id=2026258991]
 script = ExtResource("1_main")
 
-[node name="StereoWallDisplay" type="Node" parent="."]
+[node name="StereoWallDisplay" type="Node" parent="." unique_id=1808188916]
 script = ExtResource("2_stereo")
-edit_mode = true
 enable_gravity = false
 move_speed = 0.0
 look_sensitivity = 0.0
 controller_look_speed = 0.0
-start_position = Vector3(0, 0, 0)
-start_rotation_y = 0.0
 metadata/_custom_type_script = "uid://d2mxktnyjcc1a"
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=825100291]
 environment = SubResource("Environment_space")
 
-[node name="Sun" type="DirectionalLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1062406323]
 light_energy = 0.9
-shadow_enabled = false
 
-[node name="SimClock" type="Node" parent="."]
+[node name="SimClock" type="Node" parent="." unique_id=2070158001]
 script = ExtResource("3_clock")
 rate_index = 3
 
-[node name="CameraDirector" type="Node" parent="."]
+[node name="CameraDirector" type="Node" parent="." unique_id=2140085093]
 script = ExtResource("13_cam")
-orbit_speed = 1.8
-dolly_speed = 1.4
 
-[node name="EarthRig" type="Node3D" parent="."]
+[node name="EarthRig" type="Node3D" parent="." unique_id=470790547]
 script = ExtResource("4_rig")
-content_scale = 1.45
 
-[node name="EarthMesh" type="MeshInstance3D" parent="EarthRig"]
-mesh = SubResource("SphereMesh_earth")
+[node name="EarthMesh" type="MeshInstance3D" parent="EarthRig" unique_id=2131793565]
 material_override = SubResource("ShaderMaterial_earth")
+mesh = SubResource("SphereMesh_earth")
 
-[node name="Aurora" type="MeshInstance3D" parent="EarthRig/EarthMesh"]
-mesh = SubResource("SphereMesh_aurora")
+[node name="Aurora" type="MeshInstance3D" parent="EarthRig/EarthMesh" unique_id=439656500]
 material_override = SubResource("ShaderMaterial_aurora")
+mesh = SubResource("SphereMesh_aurora")
 
-[node name="AircraftLayer" type="MultiMeshInstance3D" parent="EarthRig/EarthMesh"]
+[node name="AircraftLayer" type="MultiMeshInstance3D" parent="EarthRig/EarthMesh" unique_id=1900214610]
 material_override = SubResource("ShaderMaterial_air")
 script = ExtResource("17_air")
-altitude_exaggeration = 28.0
-point_size = 0.8
-trail_seconds = 900.0
 
-[node name="TecShell" type="MeshInstance3D" parent="EarthRig/EarthMesh"]
+[node name="TecShell" type="MeshInstance3D" parent="EarthRig/EarthMesh" unique_id=434352979]
 visible = false
-mesh = SubResource("SphereMesh_tec")
 material_override = SubResource("ShaderMaterial_tec")
+mesh = SubResource("SphereMesh_tec")
 
-[node name="WindLayer" type="Node3D" parent="EarthRig/EarthMesh"]
+[node name="WindLayer" type="Node3D" parent="EarthRig/EarthMesh" unique_id=1271024481]
 visible = false
 script = ExtResource("19_wind")
-particle_count = 4500
-altitude_km = 10.5
-altitude_exaggeration = 28.0
-trail_seconds = 25200.0
-lifetime_seconds = 43200.0
 
-[node name="SensorNetwork" type="Node3D" parent="EarthRig/EarthMesh"]
+[node name="SensorNetwork" type="Node3D" parent="EarthRig/EarthMesh" unique_id=233322482]
 script = ExtResource("16_sensors")
 
-[node name="Atmosphere" type="MeshInstance3D" parent="EarthRig"]
-mesh = SubResource("SphereMesh_atmo")
+[node name="Atmosphere" type="MeshInstance3D" parent="EarthRig" unique_id=1475942411]
 material_override = SubResource("ShaderMaterial_atmo")
+mesh = SubResource("SphereMesh_atmo")
 
-[node name="SatelliteField" type="MultiMeshInstance3D" parent="EarthRig"]
+[node name="SatelliteField" type="MultiMeshInstance3D" parent="EarthRig" unique_id=1113621427]
 material_override = SubResource("ShaderMaterial_sat")
 script = ExtResource("5_field")
-point_size = 1.0
 altitude_exaggeration = 2.0
 
-[node name="UIRig" type="Node3D" parent="."]
+[node name="UIRig" type="Node3D" parent="." unique_id=46023464]
 script = ExtResource("6_hud")
 
-[node name="ChapterDeck" type="Node" parent="."]
+[node name="ChapterDeck" type="Node" parent="." unique_id=843115783]
 script = ExtResource("8_deck")

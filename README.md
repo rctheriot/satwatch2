@@ -16,17 +16,20 @@ fixed, shared, 6-metre stereo wall.
 
 ## Quick start
 
+Open `project.godot` in Godot 4.7 and press play. That is the whole setup.
+
+Every dataset is committed, including the propagated ephemeris, so a fresh
+clone runs immediately with no toolchain, no API keys and no network. **The demo
+never touches the network at any point** — every layer reads a local file, so it
+cannot stall mid-presentation.
+
+To refresh the data before a demo (needs Python and a connection):
+
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install -r tools/requirements.txt
-.venv/bin/python tools/refresh_all.py        # fetches data, builds the ephemeris
+.venv/bin/python tools/refresh_all.py
 ```
-
-Then open `project.godot` in Godot 4.7 and press play.
-
-The refresh takes a few minutes and only needs a network connection. **The demo
-itself never touches the network** — every layer reads a local file, so it can
-be run offline and cannot stall mid-presentation.
 
 ## Controls
 
@@ -111,6 +114,11 @@ addons/              the LAVA stereo wall display addon
 - [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) — moving to the wall machine and
   exporting
 - [docs/TESTING.md](docs/TESTING.md) — the headless suites and what each guards
+
+## License
+
+MIT — see [LICENSE](LICENSE). Bundled data is redistributed from public sources
+under their own terms, listed there.
 
 ## Credits
 

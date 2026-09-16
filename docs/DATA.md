@@ -167,15 +167,18 @@ nominal ranges ten radar cones at an 87° half-angle merge into one opaque shell
 
 ## What is in git
 
-| | |
-|---|---|
-| Earth textures, aurora, TEC, winds, aircraft, `catalog.json` | committed |
-| `data/ephemeris.bin` (~70 MB) | **not** committed |
-| `data/gp_cache/*.json` | **not** committed |
+**Everything**, including the ~67 MB propagated ephemeris and the raw element
+snapshot it was built from. A clone runs immediately: no toolchain, no API keys,
+no network. That is worth more than a small repository.
 
-The ephemeris is rebuilt whenever elements are refreshed, so committing it would
-add another 70 MB blob to history each time. It *is* packed into exported builds
-— see [DEPLOYMENT.md](DEPLOYMENT.md).
+It does have a cost worth knowing. Each regenerated `ephemeris.bin` adds another
+67 MB to history permanently — git cannot delta-compress it usefully. So
+**regenerating is a deliberate act, not something to commit on every rebuild**.
+Refresh when the data needs to be current for a demo, not as routine hygiene. If
+history does become unwieldy, the answer is Git LFS for `*.bin`, not pruning.
+
+Committing `data/gp_cache/` is also a provenance decision: the exact element set
+every position was derived from stays with the build that used it.
 
 ## Honesty rules
 

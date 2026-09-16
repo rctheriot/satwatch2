@@ -17,16 +17,7 @@ config/icon="res://icon.svg"
 
 [display]
 
-; MUST stay "disabled". StereoWallDisplay composites the two eye viewports as
-; TextureRects at absolute pixel positions (0 and resolution_width) inside
-; CanvasLayer 100. Any stretch mode rescales that layer against the project's
-; base resolution, so both eye images shrink and land in a corner of the wall --
-; which still looks like working stereo, just small. Verified: with
-; "canvas_items" a 1920x324 stereo window rendered its two eyes into 960x162.
-window/stretch/mode="disabled"
-window/stretch/aspect="keep"
 window/size/viewport_width=1920
-window/size/viewport_height=648
 
 [physics]
 
