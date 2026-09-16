@@ -11,14 +11,20 @@ extends MultiMeshInstance3D
 ## the same formula SatelliteField uses, so a path lines up with the shell its
 ## own dots are drawn in.
 
-## Above this many objects, a chapter's population does not get trails: the
-## segment count becomes a real per-toggle hitch to build, and for an
-## un-highlighted filter (LEO's 14,744, the full catalog's 16,000+) there is
-## no meaningful subset being traced anyway. Set high enough to still cover a
-## HIGHLIGHTED population that is large but deliberate -- Starlink alone is
-## ~8,300 objects, and tracing exactly that is the point of highlighting it
-## (see main.gd's _refresh_orbit_trails()).
-const MAX_TRAIL_OBJECTS := 9000
+## Above this many objects, the toggle draws nothing rather than a build that
+## never finishes. Set comfortably above the full catalog (~16,300) rather
+## than a tight bound -- measured at the full catalog's size: 720 ms to
+## build 1.55M segments, and no measurable per-frame cost once built (fixed
+## GPU-side line geometry, no overdraw a chapter's other transparency
+## doesn't already have). 720 ms is a real hitch, but it is paid once on an
+## explicit toggle press, not every frame, and the alternative -- capping
+## out a population this size -- is exactly the "why doesn't the full
+## catalog get paths" this constant used to cause. Not verified at full wall
+## resolution (9600x1620 vs this test's 1920x648); if it turns out to cost
+## more fill there than the low-res measurement suggested, lower this rather
+## than the alpha in orbit_trail.gdshader, which is doing real legibility
+## work at every population size.
+const MAX_TRAIL_OBJECTS := 20000
 
 var store: OrbitPathStore
 var _material: ShaderMaterial
