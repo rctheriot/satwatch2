@@ -11,7 +11,7 @@ shader_type spatial;
 // quantity a flight planner actually cares about.
 render_mode blend_add, unshaded, cull_disabled, depth_draw_never, shadows_disabled;
 
-uniform float width_pixels : hint_range(0.5, 8.0) = 2.4;
+uniform float width_pixels : hint_range(0.5, 8.0) = 3.6;
 uniform float brightness : hint_range(0.0, 3.0) = 1.0;
 // Segment length, in world units, corresponding to SPEED_FULL_SCALE_MS. Set by
 // main.gd from the trail interval and the rig scale.
