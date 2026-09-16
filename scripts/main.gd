@@ -54,6 +54,7 @@ var orbit_path_store := OrbitPathStore.new()
 ## Global and persistent across chapters -- see OrbitTrails' class comment for
 ## why this is not a per-chapter Chapter field.
 var _orbit_trails_on := false
+var _current_chapter: Chapter = null
 
 var _earth_material: ShaderMaterial
 var _atmo_material: ShaderMaterial
@@ -266,6 +267,7 @@ func _load_tec() -> void:
 
 func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 	hud.set_chapter(c, idx, total)
+	_current_chapter = c
 	_refresh_orbit_trails()
 
 ## Rebuilds the drawn trail set. A chapter that highlights a specific subset
@@ -277,8 +279,16 @@ func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 ## (HEO, MEO, GEO) fall back to the whole filtered set, same as before.
 ## Cheap to call on every chapter change since it is the only time it runs --
 ## see OrbitTrails.show_paths() for the per-frame cost this avoids.
+##
+## The toggle is global and persists across chapters on purpose (see
+## OrbitTrails' class comment), but a chapter that hides the satellite field
+## entirely -- the air domain, the jet stream -- has nothing for a SATELLITE
+## orbit path to mean anything relative to. Rather than drawing a ghostly
+## sphere of paths behind aircraft or wind data, those chapters suppress the
+## toggle's effect without clearing it, so it's back the moment the viewer
+## returns to a chapter it applies to.
 func _refresh_orbit_trails() -> void:
-	if _orbit_trails_on:
+	if _orbit_trails_on and _current_chapter != null and _current_chapter.show_satellites:
 		var highlighted := not deck.highlighted_indices.is_empty()
 		var indices := deck.highlighted_indices if highlighted else field.active
 		# Tint to match the dots being traced -- "just the red paths" should

@@ -29,6 +29,15 @@ I_CALLSIGN, I_COUNTRY = 1, 2
 I_LON, I_LAT, I_BARO_ALT, I_ON_GROUND = 5, 6, 7, 8
 I_VELOCITY, I_HEADING, I_GEO_ALT = 9, 10, 13
 
+# Generous upper bound on genuine ground speed -- real transatlantic flights
+# have hit ~290 m/s with a strong jet-stream tailwind. OpenSky's `velocity`
+# field occasionally comes back corrupted for an aircraft seen by only one or
+# two noisy receivers (a bad ADS-B decode, not a bad measurement of a real
+# fast aircraft), and nothing upstream filters it. Engine dead-reckoning turns
+# that directly into angular velocity, so a handful of these are not a subtly
+# fast aircraft on screen -- they visibly circle the globe.
+MAX_SPEED_MS = 350.0
+
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
@@ -49,6 +58,7 @@ def main():
     states = payload.get("states") or []
     out = []
     airborne = 0
+    bad_speed = 0
     for st in states:
         lat, lon = st[I_LAT], st[I_LON]
         if lat is None or lon is None:
@@ -59,10 +69,14 @@ def main():
         alt = st[I_BARO_ALT] if st[I_BARO_ALT] is not None else st[I_GEO_ALT]
         if alt is None or alt <= 0:
             continue
+        speed = st[I_VELOCITY] or 0.0
+        if speed > MAX_SPEED_MS:
+            bad_speed += 1
+            continue
         airborne += 1
         out.append([
             round(lat, 4), round(lon, 4), round(alt / 1000.0, 3),
-            round(st[I_VELOCITY] or 0.0, 1), round(st[I_HEADING] or 0.0, 1),
+            round(speed, 1), round(st[I_HEADING] or 0.0, 1),
             (st[I_CALLSIGN] or "").strip(),
         ])
 
@@ -82,7 +96,8 @@ def main():
     }), encoding="utf-8")
 
     print(f"  {len(out)} airborne aircraft ({len(states)} state vectors, "
-          f"{len(states) - airborne} on ground or incomplete)")
+          f"{len(states) - airborne - bad_speed} on ground or incomplete, "
+          f"{bad_speed} dropped for speed > {MAX_SPEED_MS:.0f} m/s)")
     print(f"  median altitude {median:.1f} km, max {alts[-1] if alts else 0:.1f} km")
     print(f"  snapshot {dt.datetime.fromtimestamp(payload.get('time', 0), dt.timezone.utc).isoformat()}")
     print(f"  -> data/aircraft.json")
