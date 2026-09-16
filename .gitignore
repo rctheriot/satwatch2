@@ -19,6 +19,14 @@
 /assets/earth_2.png
 /assets/earth_2.png.import
 
+# ISS_stationary.glb (assets/ISS/) embeds all 26 of its textures in its own
+# binary buffer -- these are Godot re-extracting them to loose PNGs on every
+# import, not source content. Confirmed regenerating them from a clean glb
+# alone works (that is how they got here). Ignoring them keeps ~29 MB of
+# pure duplicates out of history; the committed .glb is what a clone needs.
+/assets/ISS/ISS_stationary_*.png
+/assets/ISS/ISS_stationary_*.png.import
+
 # Analysis output from tools/find_conjunctions.py; not consumed by the demo.
 /data/conjunctions.json
 

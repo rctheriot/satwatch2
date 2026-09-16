@@ -21,6 +21,13 @@ const WINDS_PATH := "res://data/winds.json"
 ## into the demo -- see docs/DATA.md.
 const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 const ORBIT_PATHS_PATH := "res://data/orbit_paths.bin"
+const ISS_MODEL_PATH := "res://assets/ISS/ISS_stationary.glb"
+## Real model is ~112 m across (solar array tip to tip). Scaled down to
+## roughly match the on-screen size other chapters display content at,
+## rather than the true ~6,378 km : 1 world-unit ratio the rest of the demo
+## uses -- there is no Earth in this chapter for that ratio to mean anything
+## relative to.
+const ISS_MODEL_SCALE := 0.03
 ## Clouds slip this fraction of the Earth's own rotation per sidereal day --
 ## real jet-stream-level winds are a small delta on top of bulk co-rotation,
 ## not an independent speed. Purely a decorative constant, tuned by eye.
@@ -32,6 +39,7 @@ const CLOUD_DRIFT_FRACTION := 0.05
 @onready var atmosphere: MeshInstance3D = $EarthRig/Atmosphere
 @onready var field: SatelliteField = $EarthRig/SatelliteField
 @onready var orbit_trails: OrbitTrails = $EarthRig/OrbitTrails
+@onready var iss_rig: Node3D = $ISSRig
 @onready var hud: Hud = $UIRig
 @onready var deck: ChapterDeck = $ChapterDeck
 @onready var camera: CameraDirector = $CameraDirector
@@ -120,6 +128,9 @@ func _ready() -> void:
 	deck.tec = tec
 	deck.winds = winds
 	deck.aurora = aurora
+	deck.earth = earth
+	deck.atmosphere = atmosphere
+	deck.iss = iss_rig
 	deck.rig = rig
 	deck.field = field
 	deck.catalog = catalog
@@ -142,6 +153,8 @@ func _ready() -> void:
 
 	if weather.loaded:
 		deck.add_space_weather_chapter(weather, tec_store.loaded)
+
+	_load_iss()
 
 	_ready_ok = true
 	deck.apply(0, false)
@@ -237,6 +250,20 @@ func _load_music() -> void:
 		stream.loop = true
 	music.stream = stream
 	music.play()
+
+## Optional: adds its own chapter only if the model is present, same pattern
+## as every other optional layer. iss_rig stays an empty placeholder without
+## it, and the chapter that would show it is simply never appended.
+func _load_iss() -> void:
+	if not ResourceLoader.exists(ISS_MODEL_PATH):
+		print("No ISS model -- drop ISS_stationary.glb in assets/ISS/ for "
+			+ "the ISS chapter.")
+		return
+	var packed: PackedScene = load(ISS_MODEL_PATH)
+	var model := packed.instantiate()
+	model.scale = Vector3.ONE * ISS_MODEL_SCALE
+	iss_rig.add_child(model)
+	deck.add_iss_chapter()
 
 ## Optional layer: without the texture the shell draws nothing.
 func _load_tec() -> void:

@@ -32,6 +32,9 @@ var sensors: SensorNetwork
 var tec: MeshInstance3D
 var winds: WindLayer
 var aurora: MeshInstance3D
+var earth: MeshInstance3D
+var atmosphere: MeshInstance3D
+var iss: Node3D
 var rig: ContentRig
 var field: SatelliteField
 var catalog: CatalogStore
@@ -269,6 +272,26 @@ This isn't just weather trivia. A strong jet stream core can top 300 kilometers 
 	]
 	chapters.append(c)
 
+## Appended after load, because the model is optional data (see
+## main.gd's _load_iss()). A standalone close-up, deliberately disconnected
+## from everything else: no orbit, no scale relative to Earth, just the
+## station itself at its true proportions so a viewer can walk around it.
+func add_iss_chapter() -> void:
+	var c := Chapter.new()
+	c.title = "THE INTERNATIONAL SPACE STATION"
+	c.subtitle = "About 109 meters across, to true proportions"
+	c.explanation = """This is the International Space Station, modeled at its real proportions: about 109 meters across, roughly the length of a football field, orbiting some 400 kilometers up.
+
+It has been continuously occupied since November 2000, one of the longest-running human outposts ever built. A crew from multiple countries lives and works here, running research that isn't possible on the ground.
+
+Look around. The long trusses carry the solar arrays that power the station. The connected modules are where the crew lives, works, and runs experiments."""
+	c.show_satellites = false
+	c.show_earth = false
+	c.show_iss = true
+	c.camera_distance = 4.5
+	c.elevation = 0.15
+	chapters.append(c)
+
 ## Appended after load rather than built into the deck, because the aurora layer
 ## is optional data.
 func add_space_weather_chapter(weather: SpaceWeatherStore,
@@ -334,7 +357,23 @@ func apply(i: int, animate: bool = true) -> void:
 		winds.visible = c.show_winds
 	if aurora != null:
 		aurora.visible = c.show_aurora
+	if earth != null:
+		earth.visible = c.show_earth
+	if atmosphere != null:
+		# A sibling of EarthMesh, not a child -- show_earth would not reach it
+		# otherwise, and the ISS chapter would show the glow shell floating
+		# with no globe inside it.
+		atmosphere.visible = c.show_earth
+	if iss != null:
+		iss.visible = c.show_iss
 	field.visible = c.show_satellites
+
+	# The ISS chapter orbits the free-standing model instead of the globe --
+	# a completely different object at a completely different scale, so it
+	# always sets its own camera_distance rather than using the derivation
+	# below, which assumes the globe.
+	camera.target = iss.global_position if (c.show_iss and iss != null) \
+		else rig.global_position
 
 	# set_filter and the scale change both move the outermost object, so the
 	# derived distance has to be computed after them.

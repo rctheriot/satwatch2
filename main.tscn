@@ -212,6 +212,18 @@ altitude_exaggeration = 2.0
 [node name="OrbitTrails" type="MultiMeshInstance3D" parent="EarthRig"]
 script = ExtResource("21_orbit")
 
+[node name="ISSRig" type="Node3D" parent="." unique_id=3821904417]
+visible = false
+
+[node name="KeyLight" type="DirectionalLight3D" parent="ISSRig"]
+rotation_degrees = Vector3(-35, -40, 0)
+light_energy = 2.2
+
+[node name="FillLight" type="DirectionalLight3D" parent="ISSRig"]
+rotation_degrees = Vector3(20, 140, 0)
+light_color = Color(0.65, 0.72, 1, 1)
+light_energy = 0.45
+
 [node name="UIRig" type="Node3D" parent="." unique_id=46023464]
 script = ExtResource("6_hud")
 

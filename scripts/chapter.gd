@@ -61,6 +61,13 @@ extends Resource
 ## and 10 km-altitude wind data are so far apart in scale that showing both
 ## at once would badly misrepresent where either actually is.
 @export var show_satellites: bool = true
+## Hide the Earth mesh, and with it everything parented to it -- atmosphere,
+## clouds, and every optional layer. Only the ISS chapter needs this: it is
+## a standalone model inspection, not something shown relative to the globe.
+@export var show_earth: bool = true
+## Show the free-standing ISS model in place of the globe. Its own chapter
+## only.
+@export var show_iss: bool = false
 
 @export_group("Time")
 ## Chapters deliberately do NOT set the clock rate. Having each one impose its
