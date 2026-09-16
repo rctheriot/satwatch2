@@ -367,7 +367,7 @@ func _process(_delta: float) -> void:
 			field.altitude_exaggeration)
 
 	if aircraft.visible:
-		aircraft.update_positions(t)
+		aircraft.update_positions(t, clock.epoch_unix)
 	if winds.visible:
 		winds.update_positions(t)
 		# Colour is speed, and a segment's length IS speed x trail_seconds, so

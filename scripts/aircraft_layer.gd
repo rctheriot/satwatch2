@@ -24,8 +24,8 @@ const STRIDE := 16                 ## Same MultiMesh layout as SatelliteField.
 ## snapshot rather than recorded history, so a long trail claims more than the
 ## data supports. And visually, half an hour of great-circle flight is about
 ## 450 km, which at this density stops reading as tracks and starts reading as
-## spines radiating off the globe. Ten minutes is roughly 150 km: clearly a
-## direction of travel, without either overstatement.
+## spines radiating off the globe. Fifteen minutes is roughly 225 km at
+## cruise speed: clearly a direction of travel, without either overstatement.
 @export var trail_seconds: float = 900.0
 
 var loaded := false
@@ -165,10 +165,22 @@ func _position_at(i: int, elapsed: float) -> Vector3:
 ## Dead-reckon along each aircraft's great circle. Rotating the precomputed
 ## position/tangent pair is two trig calls per aircraft; the full spherical
 ## formula would be several times that for no visible gain.
-func update_positions(unix_seconds: float) -> void:
+##
+## elapsed is measured from `sim_epoch_unix` (SimClock.epoch_unix), NOT from
+## this layer's own snapshot_unix. Those two timestamps come from separate
+## fetches run at different times -- often minutes apart, but nothing
+## enforces that, and a same-day rebuild of just the ephemeris (see
+## tools/build_ephemeris.py) left a real ~19-hour gap once. Measured against
+## snapshot_unix, every aircraft would dead-reckon from the moment the demo
+## starts as if 19 hours had already passed: multiple full laps for a fast
+## mover, which scatters positions that were real and clustered into ones
+## that are neither. Measured against sim_epoch_unix, elapsed is always
+## bounded to SimClock's own loop window (a few hours) regardless of how
+## stale aircraft.json happens to be relative to the ephemeris.
+func update_positions(unix_seconds: float, sim_epoch_unix: float) -> void:
 	if not loaded:
 		return
-	var elapsed := unix_seconds - snapshot_unix
+	var elapsed := unix_seconds - sim_epoch_unix
 	var tail_elapsed := elapsed - trail_seconds
 	for i in count:
 		var p := _position_at(i, elapsed)
