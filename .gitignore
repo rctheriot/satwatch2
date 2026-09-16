@@ -14,3 +14,9 @@
 # On a fresh clone, run tools/refresh_all.py once.
 /data/ephemeris.bin
 .venv/
+
+# Analysis output from tools/find_conjunctions.py; not consumed by the demo.
+/data/conjunctions.json
+
+# Build output
+/build/

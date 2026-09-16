@@ -1,4 +1,19 @@
-# Verification
+# Testing
+
+Six headless suites. None needs a GPU or a network, and all of them run in
+seconds:
+
+```bash
+for t in frames lighting ui_anchor sensors optional_data camera_control; do
+  /Applications/Godot.app/Contents/MacOS/Godot --path . --headless \
+    --script res://tests/verify_$t.gd
+done
+```
+
+Several carry a **negative control** — a switch that reproduces the bug the
+check exists for. A test that has only ever passed is not evidence of anything;
+these have been shown to fail on the specific defect they guard.
+
 
 ## Frame consistency (headless, no GPU needed)
 
@@ -105,3 +120,45 @@ settle it.
   (1.64, what the runtime projection actually uses) — an 11 cm discrepancy in
   the addon that needs LAVA's calibration to resolve.
 - Gamepad reachability from the presenter's standing position.
+
+## Lighting frame
+
+    Godot --path . --headless --script res://tests/verify_lighting.gd
+
+Asserts the sun direction expressed in the content's own frame does not change
+when the rig rotates. If it does, dragging appears to change the time of day — a
+very plausible-looking bug, since the terminator still has the right shape.
+Prints the pre-fix behaviour as a control (89.6° of drift).
+
+## Camera control
+
+    Godot --path . --headless --script res://tests/verify_camera_control.gd
+
+A chapter transition must yield to the viewer. Checks both directions: an
+uninterrupted transition still arrives *and demonstrably moves*, and an
+interrupted one stops dead rather than dragging the camera back. Without the
+first half, a build where transitions never ran would pass.
+
+## Ground-site geometry
+
+    Godot --path . --headless --script res://tests/verify_sensors.gd
+
+The Earth-fixed axis convention (a hemisphere flip puts every site in the wrong
+place on a globe that still looks fine), the square-root-free elevation test
+against direct computation over 120,000 trials, and the shadow test.
+
+## Optional data
+
+    Godot --path . --headless --script res://tests/verify_optional_data.gd
+
+Aurora, aircraft, TEC and wind data come from live endpoints that can be
+unreachable. A chapter that cannot draw its subject is worse than one that is
+absent. Covers missing, empty and malformed payloads. Verified empirically too:
+removing the data files takes the deck from 12 chapters to 9 with clean messages
+and no errors.
+
+## What cannot be checked here
+
+Frame rate at 9600×1620, stereo comfort over a long pass at the real eye
+separation, and whether the dense point field suffers false matching in
+practice. That last one is perceptual and only the wall can settle it.

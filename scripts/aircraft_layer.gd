@@ -26,7 +26,7 @@ const STRIDE := 16                 ## Same MultiMesh layout as SatelliteField.
 ## 450 km, which at this density stops reading as tracks and starts reading as
 ## spines radiating off the globe. Ten minutes is roughly 150 km: clearly a
 ## direction of travel, without either overstatement.
-@export var trail_seconds: float = 1000.0
+@export var trail_seconds: float = 900.0
 
 var loaded := false
 var count := 0

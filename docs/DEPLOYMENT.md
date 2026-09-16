@@ -1,4 +1,4 @@
-# Moving this project to the wall machine
+# Deployment
 
 ## Short answer
 
@@ -82,5 +82,5 @@ the fetch tool enforces that locally.
 - The stereo output is 9600x1620 borderless at 0,0 — `edit_mode = false` on the
   `StereoWallDisplay` node, or run with `-- --stereo 4800 1620`.
 - Development happens on macOS, so full-resolution stereo comfort has never been
-  validated off the wall. See `tests/README.md` for what can only be checked
+  validated off the wall. See [TESTING.md](TESTING.md) for what can only be checked
   there.

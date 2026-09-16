@@ -23,7 +23,7 @@ TLEAPI_URL = "https://tle.ivanstanojevic.me/api/tle/"
 CACHE_DIR = pathlib.Path(__file__).resolve().parent.parent / "data" / "gp_cache"
 MIN_REFETCH_INTERVAL = dt.timedelta(hours=2)
 STAMP_FORMAT = "%Y%m%dT%H%M%SZ"
-USER_AGENT = "lava-orbital-density-wall/0.1 (University of Hawaii LAVA Lab)"
+USER_AGENT = "satwatch2/1.0 (University of Hawaii LAVA Lab)"
 
 
 def cache_files(group):

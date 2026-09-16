@@ -21,7 +21,7 @@ import zlib
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-USER_AGENT = "lava-orbital-density-wall/0.1 (University of Hawaii LAVA Lab)"
+USER_AGENT = "satwatch2/1.0 (University of Hawaii LAVA Lab)"
 
 AURORA_URL = "https://services.swpc.noaa.gov/json/ovation_aurora_latest.json"
 KP_URL = "https://services.swpc.noaa.gov/json/planetary_k_index_1m.json"

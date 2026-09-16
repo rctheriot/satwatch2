@@ -27,7 +27,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 INDEX_URL = "https://services.swpc.noaa.gov/products/glotec/geojson_2d_urt.json"
 BASE = "https://services.swpc.noaa.gov"
-USER_AGENT = "lava-orbital-density-wall/0.1 (University of Hawaii LAVA Lab)"
+USER_AGENT = "satwatch2/1.0 (University of Hawaii LAVA Lab)"
 
 # GloTEC grid: 5 degrees of longitude by 2.5 of latitude.
 GRID_W, GRID_H = 72, 72

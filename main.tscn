@@ -175,7 +175,7 @@ material_override = SubResource("ShaderMaterial_air")
 script = ExtResource("17_air")
 altitude_exaggeration = 28.0
 point_size = 0.8
-trail_seconds = 1000.0
+trail_seconds = 900.0
 
 [node name="TecShell" type="MeshInstance3D" parent="EarthRig/EarthMesh"]
 visible = false

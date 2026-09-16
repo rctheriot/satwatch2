@@ -217,7 +217,7 @@ func add_aircraft_chapter(layer: AircraftLayer) -> void:
 	var c := Chapter.new()
 	c.title = "THE AIR DOMAIN"
 	c.subtitle = "%d aircraft airborne right now" % layer.count
-	c.explanation = """Every gold point is a real aircraft, airborne at this moment, from live ADS-B tracking. The purple tracks behind them are ten minutes of flight, dead-reckoned from each aircraft's reported speed and heading — a direction of travel, not a recorded path.
+	c.explanation = """Every gold point is a real aircraft, airborne at this moment, from live ADS-B tracking. The purple tracks behind them are fifteen minutes of flight, dead-reckoned from each aircraft's reported speed and heading — a direction of travel, not a recorded path.
 
 This is the domain everyone already has an intuition for. Airliners cruise near 10 kilometres — and at true scale that layer is thinner than the coastlines drawn on this globe. It has been exaggerated heavily just to be visible at all.
 

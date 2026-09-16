@@ -63,18 +63,3 @@ func indices_with_intl_prefix(prefix: String) -> PackedInt32Array:
 		if String(objects[i].get("intl_des", "")).begins_with(prefix):
 			out.append(i)
 	return out
-
-## Epoch spread across the catalog, in days -- shown on the provenance plate
-## because it is the honest measure of how stale the oldest elements are.
-func epoch_spread_days() -> float:
-	var oldest := 1e18
-	var newest := -1e18
-	for o in objects:
-		var t := Time.get_unix_time_from_datetime_string(String(o.get("epoch", "")))
-		if t <= 0.0:
-			continue
-		oldest = minf(oldest, t)
-		newest = maxf(newest, t)
-	if newest < oldest:
-		return 0.0
-	return (newest - oldest) / 86400.0

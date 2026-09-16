@@ -1,5 +1,5 @@
 extends Node3D
-## Orbital Density Wall -- wiring and per-frame updates.
+## SatWatch 2 -- wiring and per-frame updates.
 ##
 ## The scene graph lives in main.tscn and is editable in the Godot editor:
 ## EarthRig, EarthMesh, Atmosphere, SatelliteField, UIRig, Selection, SimClock
@@ -18,10 +18,8 @@ const AIRCRAFT_PATH := "res://data/aircraft.json"
 const TEC_PATH := "res://data/tec.json"
 const TEC_TEXTURE_PATH := "res://data/tec.png"
 const WINDS_PATH := "res://data/winds.json"
-## tools/find_conjunctions.py still produces data/conjunctions.json as a
-## standalone analysis product -- the close-approach chapter was cut because the
-## events it finds are Starlink-on-Starlink, which tells a viewer little. The
-## renderer for it is gone; recover it from git if a more telling event appears.
+## tools/find_conjunctions.py is a standalone analysis utility and is not wired
+## into the demo -- see docs/DATA.md.
 const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 
 @onready var clock: SimClock = $SimClock
@@ -131,7 +129,7 @@ func _ready() -> void:
 
 	_ready_ok = true
 	deck.apply(0, false)
-	print("Orbital Density Wall ready: %d objects." % store.n_objects)
+	print("SatWatch 2 ready: %d objects." % store.n_objects)
 
 	var bench := Benchmark.from_command_line()
 	if bench != null:

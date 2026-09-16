@@ -238,12 +238,3 @@ func update_positions(unix_seconds: float) -> void:
 
 	multimesh.buffer = _buffer
 	last_update_usec = Time.get_ticks_usec() - _t0
-
-## World position of a catalog object, with the same exaggeration applied, so
-## labels and selection markers land exactly on the rendered point.
-func rendered_position(catalog_index: int, unix_seconds: float) -> Vector3:
-	var p := store.position_at(catalog_index, unix_seconds)
-	var r := p.length()
-	if altitude_exaggeration != 1.0 and r > 0.0001:
-		p *= (1.0 + (r - 1.0) * altitude_exaggeration) / r
-	return p

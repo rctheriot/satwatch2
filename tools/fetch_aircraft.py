@@ -22,7 +22,7 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 URL = "https://opensky-network.org/api/states/all"
-USER_AGENT = "lava-orbital-density-wall/0.1 (University of Hawaii LAVA Lab)"
+USER_AGENT = "satwatch2/1.0 (University of Hawaii LAVA Lab)"
 
 # OpenSky state vector indices.
 I_CALLSIGN, I_COUNTRY = 1, 2

@@ -27,7 +27,7 @@ import urllib.request
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
 URL = "https://api.open-meteo.com/v1/forecast"
-USER_AGENT = "lava-orbital-density-wall/0.1 (University of Hawaii LAVA Lab)"
+USER_AGENT = "satwatch2/1.0 (University of Hawaii LAVA Lab)"
 
 ## 10 degrees, not 5. Open-Meteo's free tier weights a request by the number of
 ## locations in it, so a 5-degree grid (2,376 points) hit HTTP 429 a quarter of
