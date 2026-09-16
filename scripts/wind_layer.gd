@@ -3,10 +3,10 @@ extends Node3D
 ## Jet-stream flow, drawn as particles advected through a real 250 hPa wind
 ## field from tools/fetch_winds.py.
 ##
-## 250 hPa is about 10.5 km -- airliner cruise altitude. That is why this sits
-## next to the live aircraft layer rather than being weather decoration: these
-## winds set transit times, fuel loads and route choice, and a 300 km/h tailwind
-## is the difference between two very different flight plans.
+## 250 hPa is about 10.5 km -- airliner cruise altitude. That is why this is
+## more than weather decoration: these winds set transit times, fuel loads and
+## route choice, and a 300 km/h tailwind is the difference between two very
+## different flight plans.
 ##
 ## Particles are advected rather than drawn as static arrows because a flow
 ## field is about motion, and a barb chart of a jet stream conveys almost none

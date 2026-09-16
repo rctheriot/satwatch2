@@ -14,7 +14,6 @@ extends Node3D
 const EPHEMERIS_PATH := "res://data/ephemeris.bin"
 const CATALOG_PATH := "res://data/catalog.json"
 const SPACE_WEATHER_PATH := "res://data/space_weather.json"
-const AIRCRAFT_PATH := "res://data/aircraft.json"
 const TEC_PATH := "res://data/tec.json"
 const TEC_TEXTURE_PATH := "res://data/tec.png"
 const WINDS_PATH := "res://data/winds.json"
@@ -37,7 +36,6 @@ const CLOUD_DRIFT_FRACTION := 0.05
 @onready var deck: ChapterDeck = $ChapterDeck
 @onready var camera: CameraDirector = $CameraDirector
 @onready var sensors: SensorNetwork = $EarthRig/EarthMesh/SensorNetwork
-@onready var aircraft: AircraftLayer = $EarthRig/EarthMesh/AircraftLayer
 @onready var tec: MeshInstance3D = $EarthRig/EarthMesh/TecShell
 @onready var winds: WindLayer = $EarthRig/EarthMesh/WindLayer
 @onready var aurora: MeshInstance3D = $EarthRig/EarthMesh/Aurora
@@ -119,7 +117,6 @@ func _ready() -> void:
 
 	deck.camera = camera
 	deck.sensors = sensors
-	deck.aircraft = aircraft
 	deck.tec = tec
 	deck.winds = winds
 	deck.aurora = aurora
@@ -133,16 +130,6 @@ func _ready() -> void:
 	# Optional layers each add their own chapter only if their data is present.
 	# A chapter that cannot draw its subject is worse than one that is absent:
 	# on a wall, an empty globe reads as the demo being broken.
-	# Aircraft before wind: the jet stream chapter's closing line refers back
-	# to "the aircraft in the previous chapter", which is only true this way
-	# round.
-	if aircraft.load_from(AIRCRAFT_PATH):
-		deck.add_aircraft_chapter(aircraft)
-	else:
-		aircraft.visible = false
-		print("No aircraft snapshot -- run tools/fetch_aircraft.py for the air "
-			+ "domain chapter.")
-
 	if winds.load_from(WINDS_PATH):
 		deck.add_wind_chapter(winds)
 		# Colour is speed, so full scale is set from this field's own peak --
@@ -282,11 +269,11 @@ func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 ##
 ## The toggle is global and persists across chapters on purpose (see
 ## OrbitTrails' class comment), but a chapter that hides the satellite field
-## entirely -- the air domain, the jet stream -- has nothing for a SATELLITE
-## orbit path to mean anything relative to. Rather than drawing a ghostly
-## sphere of paths behind aircraft or wind data, those chapters suppress the
-## toggle's effect without clearing it, so it's back the moment the viewer
-## returns to a chapter it applies to.
+## entirely -- the jet stream -- has nothing for a SATELLITE orbit path to
+## mean anything relative to. Rather than drawing a ghostly sphere of paths
+## behind wind data, that chapter suppresses the toggle's effect without
+## clearing it, so it's back the moment the viewer returns to a chapter it
+## applies to.
 func _refresh_orbit_trails() -> void:
 	if _orbit_trails_on and _current_chapter != null and _current_chapter.show_satellites:
 		var highlighted := not deck.highlighted_indices.is_empty()
@@ -376,8 +363,6 @@ func _process(_delta: float) -> void:
 		_aurora_material.set_shader_parameter("altitude_exaggeration",
 			field.altitude_exaggeration)
 
-	if aircraft.visible:
-		aircraft.update_positions(t, clock.epoch_unix)
 	if winds.visible:
 		winds.update_positions(t)
 		# Colour is speed, and a segment's length IS speed x trail_seconds, so

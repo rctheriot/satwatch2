@@ -6,9 +6,9 @@ display wall.
 
 It draws the tracked-object catalogue — roughly 16,000 satellites, rocket bodies
 and debris — around a physically-sized Earth, and layers live data over it:
-ground-sensor coverage, the auroral oval, ionospheric electron content, the jet
-stream, and live aircraft. A presenter walks through it as a sequence of
-chapters, each explaining what it shows.
+ground-sensor coverage, the auroral oval, ionospheric electron content, and the
+jet stream. A presenter walks through it as a sequence of chapters, each
+explaining what it shows.
 
 Successor to the 2016 HTC Vive demo
 [SatelliteWatch](https://github.com/rctheriot/SatelliteWatch), rebuilt for a
@@ -57,18 +57,17 @@ time, put them together at true scale, then look at specific events.
 |---|---|---|
 | 1 | Low Earth Orbit | The crowded shells below 2,000 km |
 | 2 | Medium Earth Orbit | Navigation constellations near 20,000 km |
-| 3 | Geostationary Belt | 35,786 km, one orbit per day |
-| 4 | Highly Elliptical | Long dwell over one hemisphere |
+| 3 | Geostationary Orbit | 35,786 km, one orbit per day |
+| 4 | Highly Elliptical Orbit | Long dwell over one hemisphere |
 | 5 | The Full Catalog | All four populations at true scale |
-| 6 | Constellation | Starlink against the rest of LEO |
-| 7 | Breakup: Fengyun-1C | 2007 ASAT debris, still tracked |
-| 8 | Collision: 2009 | Cosmos 2251 / Iridium 33 |
-| 9 | Surveillance Network | Ground coverage and live in-view counts |
+| 6 | Starlink's Constellation | Starlink against the rest of LEO |
+| 7 | A Satellite Breakup | 2007 ASAT debris, still tracked |
+| 8 | A Satellite Collision | Cosmos 2251 / Iridium 33 |
+| 9 | The Tracking Network | Ground coverage and live in-view counts |
 | 10 | The Jet Stream | 250 hPa winds at cruise altitude |
-| 11 | The Air Domain | Live ADS-B aircraft |
-| 12 | Space Weather | Auroral oval and ionospheric TEC |
+| 11 | Space Weather | Auroral oval and ionospheric TEC |
 
-Chapters 9–12 depend on live data. If a dataset is missing, that chapter is
+Chapters 9–11 depend on live data. If a dataset is missing, that chapter is
 simply absent rather than showing an empty globe.
 
 ## Data
@@ -83,7 +82,6 @@ Everything is real and attributed on screen, including its limitations.
 | Aurora, Kp, X-ray flux | NOAA SWPC |
 | Ionosphere (TEC) | NOAA SWPC GloTEC |
 | Upper winds | Open-Meteo (NOAA GFS) |
-| Aircraft | OpenSky Network (ADS-B) |
 
 This is not an operational product. It screens public general-perturbation
 element sets whose positional error grows to kilometres per day, and the
@@ -124,5 +122,4 @@ under their own terms, listed there.
 
 Built by the UH Mānoa LAVA Lab. Stereo wall rendering uses the lab's
 `stereo_wall_display` Godot addon (MIT). Earth imagery courtesy of NASA. Space
-weather and ionospheric data courtesy of NOAA SWPC. Aircraft data courtesy of
-the OpenSky Network.
+weather and ionospheric data courtesy of NOAA SWPC.

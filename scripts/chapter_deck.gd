@@ -29,7 +29,6 @@ var highlighted_indices: PackedInt32Array = PackedInt32Array()
 
 var camera: CameraDirector
 var sensors: SensorNetwork
-var aircraft: AircraftLayer
 var tec: MeshInstance3D
 var winds: WindLayer
 var aurora: MeshInstance3D
@@ -257,7 +256,7 @@ func add_wind_chapter(layer: WindLayer) -> void:
 
 Color shows wind speed on a fixed scale, so it means the same thing no matter when you're looking: blue is calm, moving up through green and orange to red at the fastest winds, above about 65 meters per second (234 kilometers per hour). A jet stream is usually defined as a core faster than about 30 meters per second. Streak length also shows speed, so fast air draws long streaks and slow air draws short ones.
 
-This isn't just weather trivia. A strong jet stream core can top 300 kilometers per hour, and flying with it or against it can mean very different flight times and fuel needs. Notice the pattern: strong winds blowing west to east around the middle latitudes, and weaker, often reversed winds near the equator. The aircraft in the previous chapter are flying through this."""
+This isn't just weather trivia. A strong jet stream core can top 300 kilometers per hour, and flying with it or against it can mean very different flight times and fuel needs. Notice the pattern: strong winds blowing west to east around the middle latitudes, and weaker, often reversed winds near the equator."""
 	c.show_winds = true
 	c.show_satellites = false
 	c.content_scale = 1.6
@@ -267,26 +266,6 @@ This isn't just weather trivia. A strong jet stream core can top 300 kilometers 
 		{"color": Color(0.28, 0.92, 0.48), "label": "~30 m/s, jet stream threshold"},
 		{"color": Color(1.00, 0.55, 0.14), "label": "~52 m/s"},
 		{"color": Color(1.00, 0.18, 0.16), "label": "65+ m/s (234+ km/h)"},
-	]
-	chapters.append(c)
-
-## Appended after load, because the aircraft snapshot is optional data.
-func add_aircraft_chapter(layer: AircraftLayer) -> void:
-	var c := Chapter.new()
-	c.title = "THE AIR DOMAIN"
-	c.subtitle = "%d aircraft in the sky right now" % layer.count
-	c.explanation = """Every gold point is a real aircraft, airborne right now, from live flight-tracking data. The purple trails behind them show the last fifteen minutes of travel, estimated from each aircraft's reported speed and heading rather than a recorded path.
-
-This is a domain most people already have a feel for. Airliners cruise around 10 kilometers up, and at true scale that layer would be thinner than the coastlines drawn on this globe, so it's been stretched dramatically just to be visible at all.
-
-Now compare that to everything else on this wall. The lowest tracked satellites orbit about forty times higher than these aircraft, and the geostationary belt, home to many communications and weather satellites, is about three thousand times higher still. Air traffic is crowded, but extremely well tracked. Space is far larger, and far less of it is watched this closely."""
-	c.show_aircraft = true
-	c.show_satellites = false
-	c.content_scale = 1.6
-	c.elevation = 0.35
-	c.legend = [
-		{"color": Color(1.0, 0.82, 0.35), "label": "Aircraft, right now"},
-		{"color": Color(0.72, 0.45, 1.0), "label": "Estimated path, last 15 minutes"},
 	]
 	chapters.append(c)
 
@@ -349,8 +328,6 @@ func apply(i: int, animate: bool = true) -> void:
 
 	if sensors != null:
 		sensors.visible = c.show_sensors
-	if aircraft != null:
-		aircraft.visible = c.show_aircraft
 	if tec != null:
 		tec.visible = c.show_tec
 	if winds != null:
@@ -366,8 +343,7 @@ func apply(i: int, animate: bool = true) -> void:
 	# larger than the globe, and the Earth came out a few degrees wide.
 	var radius_m := rig.content_radius_m()
 	if not c.show_satellites:
-		radius_m = rig.content_scale * (aircraft.max_radius()
-			if aircraft != null and c.show_aircraft and aircraft.loaded else 1.0)
+		radius_m = rig.content_scale
 
 	visible_radius_m = radius_m
 	var dist := c.camera_distance

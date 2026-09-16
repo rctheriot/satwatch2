@@ -59,8 +59,8 @@ network.
 
 Runs every fetch and rebuilds the ephemeris. Orbital elements go stale slowly
 (SGP4 error grows to kilometres per day, so within a few days is fine); aurora,
-TEC, winds and aircraft are snapshots of the moment and are worth refreshing the
-morning of a demo. CelesTrak allows one download per two-hour update cycle and
+TEC and winds are snapshots of the moment and are worth refreshing the morning
+of a demo. CelesTrak allows one download per two-hour update cycle and
 the fetch tool enforces that locally.
 
 ## Platform notes

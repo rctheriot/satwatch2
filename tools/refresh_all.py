@@ -24,7 +24,6 @@ STEPS = [
     ("Space weather", ["fetch_space_weather.py", "--offline-ok"], True),
     ("Ionosphere (TEC)", ["fetch_tec.py", "--offline-ok"], True),
     ("Upper winds", ["fetch_winds.py", "--offline-ok"], True),
-    ("Aircraft", ["fetch_aircraft.py", "--offline-ok"], True),
 ]
 
 

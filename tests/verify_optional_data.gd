@@ -3,7 +3,7 @@ extends SceneTree
 ##
 ##   Godot --path . --headless --script res://tests/verify_optional_data.gd
 ##
-## Aurora, aircraft and conjunction data all come from live endpoints that can
+## Aurora and conjunction data both come from live endpoints that can
 ## be unreachable -- CelesTrak already is, from this network. A chapter that
 ## cannot draw its subject is worse than one that is absent: on a wall, an empty
 ## globe reads as the demo being broken, in front of an audience.
@@ -19,23 +19,10 @@ func _init() -> void:
 	_ok("SpaceWeatherStore", weather.load_from("res://data/__absent__.json")
 		!= OK and not weather.loaded, "returns an error and stays unloaded")
 
-	var air := AircraftLayer.new()
-	_ok("AircraftLayer", not air.load_from("res://data/__absent__.json")
-		and not air.loaded, "returns false and stays unloaded")
-	air.free()
-
 	# Empty and malformed payloads, not just absent files -- a truncated
 	# download is as likely as a missing one.
 	var bad := "user://__bad_optional__.json"
 	var f := FileAccess.open(bad, FileAccess.WRITE)
-	f.store_string("{\"aircraft\": []}")
-	f.close()
-	var air2 := AircraftLayer.new()
-	_ok("AircraftLayer, empty payload", not air2.load_from(bad),
-		"returns false rather than building an empty layer")
-	air2.free()
-
-	f = FileAccess.open(bad, FileAccess.WRITE)
 	f.store_string("not json at all")
 	f.close()
 	var w2 := SpaceWeatherStore.new()

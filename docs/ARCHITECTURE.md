@@ -58,8 +58,8 @@ both `tools/build_ephemeris.py` and `tests/verify_frames.gd`.
 computes equirectangular UV from the mesh-local normal. Trusting the engine's UV
 convention puts every continent at a constant unknown longitude offset — the
 terminator is the right *shape*, just over the wrong ocean. The same convention
-is used by `GroundSites.site_up()`, `AircraftLayer` and `WindLayer`, so ground
-positions agree with the imagery by construction.
+is used by `GroundSites.site_up()` and `WindLayer`, so ground positions agree
+with the imagery by construction.
 
 **Rotating content must carry the lighting with it.** `sun_direction()` is an
 inertial vector and the Earth shader dots it against a world-space normal. Early

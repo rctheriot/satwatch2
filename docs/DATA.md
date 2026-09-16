@@ -126,14 +126,6 @@ about a thousand kilometres wide, so 10° still resolves it and bilinear samplin
 smooths the rest. Fetched in batches with backoff and deliberate pacing — it is
 a free public service.
 
-## Aircraft — `tools/fetch_aircraft.py`
-
-OpenSky Network ADS-B. Aircraft on the ground and those without altitude are
-dropped.
-
-Positions are a **snapshot with velocity and heading**, dead-reckoned between
-refreshes rather than tracked. That is an approximation and the display says so.
-
 ## Conjunction screening — `tools/find_conjunctions.py`
 
 A standalone analysis utility. **Not wired into the demo** — the close-approach

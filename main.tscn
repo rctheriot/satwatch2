@@ -15,7 +15,6 @@
 [ext_resource type="Shader" uid="uid://mfhj3b8diq0n" path="res://shaders/aurora.gdshader" id="15_aurora"]
 [ext_resource type="Shader" uid="uid://c8euodphvxath" path="res://shaders/clouds.gdshader" id="20_clouds"]
 [ext_resource type="Script" uid="uid://cupbxvvj5n27x" path="res://scripts/sensor_network.gd" id="16_sensors"]
-[ext_resource type="Script" uid="uid://gvox2i7mmiot" path="res://scripts/aircraft_layer.gd" id="17_air"]
 [ext_resource type="Shader" uid="uid://cmt5gfraeboxs" path="res://shaders/tec.gdshader" id="18_tec"]
 [ext_resource type="Script" uid="uid://bvfmw1hdu5i7p" path="res://scripts/wind_layer.gd" id="19_wind"]
 [ext_resource type="Script" path="res://scripts/orbit_trails.gd" id="21_orbit"]
@@ -99,23 +98,6 @@ radius = 1.004
 height = 2.008
 radial_segments = 128
 rings = 64
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_air"]
-render_priority = 0
-shader = ExtResource("11_sat")
-shader_parameter/leo_color = Color(1, 0.82, 0.35, 1)
-shader_parameter/meo_color = Color(1, 0.82, 0.35, 1)
-shader_parameter/geo_color = Color(1, 0.82, 0.35, 1)
-shader_parameter/heo_color = Color(1, 0.82, 0.35, 1)
-shader_parameter/highlight_color = Color(1, 0.82, 0.35, 1)
-shader_parameter/highlight_size_boost = 1.45
-shader_parameter/base_color_override = Color(0, 0, 0, 0)
-shader_parameter/brightness = 1.1
-shader_parameter/point_pixels = 2.8
-shader_parameter/depth_cue = 0.3
-shader_parameter/reference_depth = 4.5
-shader_parameter/min_pixel_size = 1.6
-shader_parameter/faint_alpha_floor = 0.55
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_tec"]
 render_priority = 0
@@ -205,10 +187,6 @@ mesh = SubResource("SphereMesh_aurora")
 [node name="Clouds" type="MeshInstance3D" parent="EarthRig/EarthMesh"]
 material_override = SubResource("ShaderMaterial_clouds")
 mesh = SubResource("SphereMesh_clouds")
-
-[node name="AircraftLayer" type="MultiMeshInstance3D" parent="EarthRig/EarthMesh" unique_id=1900214610]
-material_override = SubResource("ShaderMaterial_air")
-script = ExtResource("17_air")
 
 [node name="TecShell" type="MeshInstance3D" parent="EarthRig/EarthMesh" unique_id=434352979]
 visible = false

@@ -71,11 +71,11 @@ dragging the camera back.
 
     Godot --path . --headless --script res://tests/verify_optional_data.gd
 
-Aurora, aircraft and conjunction data come from live endpoints that can be
-unreachable. A chapter that cannot draw its subject is worse than one that is
-absent -- on a wall, an empty globe reads as the demo being broken. Verified
-empirically too: removing the data files takes the deck from 11 chapters to 9
-with clean messages and no errors.
+Aurora and conjunction data come from live endpoints that can be unreachable.
+A chapter that cannot draw its subject is worse than one that is absent -- on
+a wall, an empty globe reads as the demo being broken. Verified empirically
+too: removing the data files takes the deck from 11 chapters to 9 with clean
+messages and no errors.
 
 ## Stereo output
 
@@ -151,11 +151,11 @@ against direct computation over 120,000 trials, and the shadow test.
 
     Godot --path . --headless --script res://tests/verify_optional_data.gd
 
-Aurora, aircraft, TEC and wind data come from live endpoints that can be
-unreachable. A chapter that cannot draw its subject is worse than one that is
-absent. Covers missing, empty and malformed payloads. Verified empirically too:
-removing the data files takes the deck from 12 chapters to 9 with clean messages
-and no errors.
+Aurora, TEC and wind data come from live endpoints that can be unreachable.
+A chapter that cannot draw its subject is worse than one that is absent.
+Covers missing, empty and malformed payloads. Verified empirically too:
+removing the data files takes the deck from 11 chapters to 9 with clean
+messages and no errors.
 
 ## What cannot be checked here
 

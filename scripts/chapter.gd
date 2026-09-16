@@ -50,8 +50,6 @@ extends Resource
 
 ## Show the Space Surveillance Network layer and its per-site visibility panel.
 @export var show_sensors: bool = false
-## Show the live ADS-B aircraft layer.
-@export var show_aircraft: bool = false
 ## Show the ionospheric TEC shell.
 @export var show_tec: bool = false
 ## Show advected 250 hPa wind streamlines.
@@ -59,9 +57,9 @@ extends Resource
 ## Show the auroral oval shell. Only meaningful in the space weather chapter --
 ## it was previously left visible everywhere its data had loaded.
 @export var show_aurora: bool = false
-## Hide the satellite field. The air-domain chapter needs this: aircraft and
-## satellites are 40x apart in altitude, so any exaggeration that makes the air
-## layer visible would badly misrepresent where the satellites are.
+## Hide the satellite field. The jet-stream chapter needs this: satellites
+## and 10 km-altitude wind data are so far apart in scale that showing both
+## at once would badly misrepresent where either actually is.
 @export var show_satellites: bool = true
 
 @export_group("Time")

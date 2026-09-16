@@ -3,8 +3,8 @@
 
 250 hPa is roughly 10.5 km -- airliner cruise altitude, and where the jet
 streams live. Winds there routinely exceed 200 km/h and directly set transit
-times, fuel loads and route choice, which is why this sits alongside the live
-aircraft layer rather than being weather decoration.
+times, fuel loads and route choice, which is why this is more than weather
+decoration.
 
 Open-Meteo caps a request URI at roughly a hundred coordinates, so the grid is
 fetched in batches. It is paced deliberately: this is a free public service.
