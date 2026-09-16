@@ -35,6 +35,7 @@ const AURORA_TEXTURE_PATH := "res://data/aurora.png"
 @onready var tec: MeshInstance3D = $EarthRig/EarthMesh/TecShell
 @onready var winds: WindLayer = $EarthRig/EarthMesh/WindLayer
 @onready var aurora: MeshInstance3D = $EarthRig/EarthMesh/Aurora
+@onready var clouds: MeshInstance3D = $EarthRig/EarthMesh/Clouds
 @onready var sun_light: DirectionalLight3D = $Sun
 @onready var wall: Node = $StereoWallDisplay
 
@@ -48,6 +49,7 @@ var _atmo_material: ShaderMaterial
 var _sat_material: ShaderMaterial
 var _sky_material: ShaderMaterial
 var _aurora_material: ShaderMaterial
+var _clouds_material: ShaderMaterial
 var _tec_material: ShaderMaterial
 var _wind_material: ShaderMaterial
 var _ready_ok := false
@@ -62,6 +64,7 @@ func _ready() -> void:
 	_sat_material = field.material_override as ShaderMaterial
 	_aurora_material = aurora.material_override as ShaderMaterial
 	_tec_material = tec.material_override as ShaderMaterial
+	_clouds_material = clouds.material_override as ShaderMaterial
 	_load_aurora()
 	_load_tec()
 	var env: Environment = $WorldEnvironment.environment
@@ -175,9 +178,9 @@ func _release_mouse() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 
 func _apply_earth_textures() -> void:
-	# Textures are not committed (large NASA Blue Marble downloads). Fall back to
-	# a flat globe rather than failing, so geometry, clock and field stay
-	# workable before the art lands.
+	# NASA Blue Marble/Black Marble textures, committed under assets/ so a
+	# clone runs with no setup. Still loaded defensively: without day_texture
+	# the globe falls back to flat shading rather than failing outright.
 	for pair in [["day_texture", "res://assets/earth_day.jpg"],
 			["night_texture", "res://assets/earth_night.jpg"],
 			["ocean_mask", "res://assets/earth_ocean.png"]]:
@@ -186,6 +189,11 @@ func _apply_earth_textures() -> void:
 		elif pair[0] == "day_texture":
 			push_warning("Missing %s -- see assets/README.md. Using a flat globe."
 				% pair[1])
+	if ResourceLoader.exists("res://assets/earth_clouds.jpg"):
+		_clouds_material.set_shader_parameter("cloud_texture",
+			load("res://assets/earth_clouds.jpg"))
+	else:
+		clouds.visible = false
 
 ## Optional layer: without the texture the shell simply draws nothing, since
 ## the shader discards at zero probability.
@@ -271,6 +279,7 @@ func _process(_delta: float) -> void:
 	var sun := frame * clock.sun_direction()
 	_earth_material.set_shader_parameter("sun_direction", sun)
 	_atmo_material.set_shader_parameter("sun_direction", sun)
+	_clouds_material.set_shader_parameter("sun_direction", sun)
 	# Size target is honoured at the content centre, so it tracks the camera
 	# rather than the content scale.
 	_sat_material.set_shader_parameter("highlight_color", field.highlight_color)

@@ -13,6 +13,7 @@
 [ext_resource type="Shader" uid="uid://bbnoxx3xmuxve" path="res://shaders/starfield.gdshader" id="12_sky"]
 [ext_resource type="Script" uid="uid://cd2q7jxv4n4ya" path="res://scripts/camera_director.gd" id="13_cam"]
 [ext_resource type="Shader" uid="uid://mfhj3b8diq0n" path="res://shaders/aurora.gdshader" id="15_aurora"]
+[ext_resource type="Shader" uid="uid://c8euodphvxath" path="res://shaders/clouds.gdshader" id="20_clouds"]
 [ext_resource type="Script" uid="uid://cupbxvvj5n27x" path="res://scripts/sensor_network.gd" id="16_sensors"]
 [ext_resource type="Script" uid="uid://gvox2i7mmiot" path="res://scripts/aircraft_layer.gd" id="17_air"]
 [ext_resource type="Shader" uid="uid://cmt5gfraeboxs" path="res://shaders/tec.gdshader" id="18_tec"]
@@ -69,6 +70,23 @@ shader_parameter/terminator_softness = 0.22
 [sub_resource type="SphereMesh" id="SphereMesh_aurora"]
 radius = 1.0
 height = 2.0
+radial_segments = 128
+rings = 64
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_clouds"]
+render_priority = 1
+shader = ExtResource("20_clouds")
+shader_parameter/sun_direction = Vector3(1, 0, 0)
+shader_parameter/terminator_softness = 0.14
+shader_parameter/day_brightness = 1.0
+shader_parameter/night_brightness = 0.03
+shader_parameter/opacity = 0.55
+shader_parameter/drift_speed = 0.0012
+shader_parameter/longitude_offset_deg = 0.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_clouds"]
+radius = 1.004
+height = 2.008
 radial_segments = 128
 rings = 64
 
@@ -150,7 +168,7 @@ metadata/_custom_type_script = "uid://d2mxktnyjcc1a"
 environment = SubResource("Environment_space")
 
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1062406323]
-light_energy = 0.9
+shadow_enabled = true
 
 [node name="SimClock" type="Node" parent="." unique_id=2070158001]
 script = ExtResource("3_clock")
@@ -169,6 +187,10 @@ mesh = SubResource("SphereMesh_earth")
 [node name="Aurora" type="MeshInstance3D" parent="EarthRig/EarthMesh" unique_id=439656500]
 material_override = SubResource("ShaderMaterial_aurora")
 mesh = SubResource("SphereMesh_aurora")
+
+[node name="Clouds" type="MeshInstance3D" parent="EarthRig/EarthMesh"]
+material_override = SubResource("ShaderMaterial_clouds")
+mesh = SubResource("SphereMesh_clouds")
 
 [node name="AircraftLayer" type="MultiMeshInstance3D" parent="EarthRig/EarthMesh" unique_id=1900214610]
 material_override = SubResource("ShaderMaterial_air")

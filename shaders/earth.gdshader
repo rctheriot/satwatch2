@@ -21,8 +21,18 @@ uniform vec3 sun_direction = vec3(1.0, 0.0, 0.0);
 uniform float day_gain : hint_range(0.0, 3.0) = 1.15;
 uniform float night_gain : hint_range(0.0, 4.0) = 1.35;
 uniform float terminator_softness : hint_range(0.005, 0.5) = 0.10;
+// Minimum brightness on the LIT hemisphere at grazing sun angle, as a
+// fraction of full Lambertian. Not a night-side term -- the night side gets
+// none of this, on purpose (see fragment()).
 uniform float ambient_floor : hint_range(0.0, 0.3) = 0.02;
 uniform float ocean_specular : hint_range(0.0, 2.0) = 0.6;
+// Real twilight is not a neutral gray blend -- Rayleigh scattering through the
+// long low-sun path paints a warm band on the day side of the terminator and
+// a cooler one just into the night side. A single warm color peaked exactly
+// at the terminator gets most of that for one uniform's worth of cost.
+uniform vec3 twilight_color : source_color = vec3(1.0, 0.45, 0.22);
+uniform float twilight_intensity : hint_range(0.0, 0.3) = 0.018;
+uniform float twilight_width : hint_range(0.005, 0.15) = 0.02;
 // Calibration only. The UV mapping below is derived, not guessed, so this
 // should stay 0; it exists so a texture that is not exactly centred on the
 // prime meridian can be nudged without touching code.
@@ -76,9 +86,20 @@ void fragment() {
 	vec3 day_c = texture(day_texture, uv).rgb * day_gain;
 	vec3 night_c = texture(night_texture, uv).rgb * night_gain;
 
-	vec3 lit = day_c * (0.25 + 0.75 * lambert);
+	// Real Earth falls off close to true Lambertian toward the limb -- the
+	// old 0.25 floor here kept the whole day side near-uniformly bright and
+	// was most of why the globe read as flat/ambient-lit.
+	vec3 lit = day_c * (ambient_floor + (1.0 - ambient_floor) * lambert);
 	// City lights fade in through the terminator and never show on the lit side.
-	vec3 color = mix(night_c, lit, day) + day_c * ambient_floor;
+	// Nothing is added on the night side beyond night_c: any day-texture bleed
+	// there reads as the "whole earth ambiently lit" look this replaces.
+	vec3 color = mix(night_c, lit, day);
+
+	// Twilight band, peaked exactly at the terminator (cos_sun = 0) and
+	// scaled down where the surface itself is bright, so it reads as
+	// atmosphere over the ground rather than a wash on top of it.
+	float twilight = exp(-pow(cos_sun / twilight_width, 4.0));
+	color += twilight_color * twilight * twilight_intensity * (1.0 - lambert);
 
 	// Ocean highlight. Falls back to matte everywhere when no mask is supplied
 	// (hint_default_black), which is the current state -- see assets/README.md.

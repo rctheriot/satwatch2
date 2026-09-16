@@ -50,6 +50,18 @@ var _pivot: Node3D
 
 func _ready() -> void:
 	set_process(true)
+	# Gamepad input is polled here, in _process, rather than arriving as a
+	# discrete _unhandled_input event like mouse drags do. Godot runs sibling
+	# _process calls in tree order, and StereoWallDisplay sits earlier in
+	# main.tscn than this node -- so without a priority, the addon rebuilds
+	# the stereo eye frustums from LAST frame's pivot pose, then this node
+	# moves the pivot. The HUD (parented straight to the pivot, resolved at
+	# render time) shows the new pose the same frame; the wall's virtual
+	# screen doesn't catch up until the next one. That one-frame skew is
+	# invisible for a single mouse drag but reads as constant jitter while a
+	# stick is held. Negative priority runs this before the (priority 0)
+	# addon regardless of tree order.
+	process_priority = -10
 
 ## The addon creates these in its own _ready() and recreates them on _rebuild()
 ## (which the --stereo flag triggers), so look them up rather than caching.
