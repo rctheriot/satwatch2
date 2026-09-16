@@ -19,6 +19,14 @@ const PRESET_CLEARANCE := 0.55
 var chapters: Array[Chapter] = []
 var index: int = 0
 
+## Catalog indices the CURRENT chapter highlights, e.g. a debris cloud or one
+## constellation -- empty when the chapter highlights nothing. main.gd reads
+## this to decide which indices the orbit-trail toggle draws: a chapter that
+## calls out a specific subset should trail that subset, not its whole
+## (possibly capped-out) filtered population. Set alongside field.set_highlight()
+## in apply(), from the same computed indices, so the two never disagree.
+var highlighted_indices: PackedInt32Array = PackedInt32Array()
+
 var camera: CameraDirector
 var sensors: SensorNetwork
 var aircraft: AircraftLayer
@@ -330,11 +338,12 @@ func apply(i: int, animate: bool = true) -> void:
 	field.set_filter(c.regimes)
 
 	if not c.highlight_intl_prefix.is_empty():
-		field.set_highlight(catalog.indices_with_intl_prefix(c.highlight_intl_prefix))
+		highlighted_indices = catalog.indices_with_intl_prefix(c.highlight_intl_prefix)
 	elif not c.highlight_name.is_empty():
-		field.set_highlight(catalog.indices_matching_name(c.highlight_name))
+		highlighted_indices = catalog.indices_matching_name(c.highlight_name)
 	else:
-		field.set_highlight(PackedInt32Array())
+		highlighted_indices = PackedInt32Array()
+	field.set_highlight(highlighted_indices)
 
 	# The clock rate is deliberately untouched -- see Chapter's Time group.
 

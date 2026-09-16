@@ -11,12 +11,14 @@ extends MultiMeshInstance3D
 ## the same formula SatelliteField uses, so a path lines up with the shell its
 ## own dots are drawn in.
 
-## Above this many objects a chapter's filtered population is too dense for
-## individual paths to read as anything but a hairball, and the segment count
-## would be a real per-toggle hitch to build. The HEO chapter this feature was
-## built for is ~430 objects; LEO and the full catalog are 14,000+ and simply
-## do not get trails.
-const MAX_TRAIL_OBJECTS := 900
+## Above this many objects, a chapter's population does not get trails: the
+## segment count becomes a real per-toggle hitch to build, and for an
+## un-highlighted filter (LEO's 14,744, the full catalog's 16,000+) there is
+## no meaningful subset being traced anyway. Set high enough to still cover a
+## HIGHLIGHTED population that is large but deliberate -- Starlink alone is
+## ~8,300 objects, and tracing exactly that is the point of highlighting it
+## (see main.gd's _refresh_orbit_trails()).
+const MAX_TRAIL_OBJECTS := 9000
 
 var store: OrbitPathStore
 var _material: ShaderMaterial
@@ -36,16 +38,25 @@ func build(orbit_store: OrbitPathStore) -> void:
 	material_override = _material
 	visible = false
 
+## Neutral default when tracing a chapter's whole filtered population (HEO,
+## MEO, GEO) rather than something a chapter highlights -- see main.gd's
+## _refresh_orbit_trails() for which case is which.
+const DEFAULT_COLOR := Color(0.55, 0.68, 0.95, 0.16)
+
 ## Rebuilds the drawn set from scratch. Called whenever the chapter changes
 ## while the toggle is on, or when the toggle switches on -- never per frame,
 ## since the paths themselves are static and only the CURRENT-position dots
-## need to move.
-func show_paths(indices: PackedInt32Array, altitude_exaggeration: float) -> void:
+## need to move. `color` should match whatever the dots themselves are
+## coloured when tracing a highlighted subset (debris red, one constellation
+## green), so "just the red paths" reads as red, not the neutral default.
+func show_paths(indices: PackedInt32Array, altitude_exaggeration: float,
+		color: Color = DEFAULT_COLOR) -> void:
 	if store == null or not store.is_loaded() or indices.is_empty() \
 			or indices.size() > MAX_TRAIL_OBJECTS:
 		visible = false
 		multimesh.instance_count = 0
 		return
+	_material.set_shader_parameter("trail_color", color)
 
 	var p := store.points_per_path
 	var segs_per_obj := p - 1     # one full period is nearly closed already;

@@ -268,13 +268,29 @@ func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 	hud.set_chapter(c, idx, total)
 	_refresh_orbit_trails()
 
-## Rebuilds the drawn trail set from the chapter's current filtered population
-## (field.active). Cheap to call on every chapter change since it is the only
-## time it runs -- see OrbitTrails.show_paths() for the per-frame cost this
-## avoids.
+## Rebuilds the drawn trail set. A chapter that highlights a specific subset
+## (a debris cloud, one constellation) trails THAT subset rather than its
+## whole filtered population -- Starlink alone is a legible handful of
+## ellipses; Starlink plus the other ~6,400 objects sharing its regime filter
+## is the cap kicking in for no reason, since the highlighted objects were
+## the only ones worth tracing anyway. Chapters with nothing highlighted
+## (HEO, MEO, GEO) fall back to the whole filtered set, same as before.
+## Cheap to call on every chapter change since it is the only time it runs --
+## see OrbitTrails.show_paths() for the per-frame cost this avoids.
 func _refresh_orbit_trails() -> void:
 	if _orbit_trails_on:
-		orbit_trails.show_paths(field.active, field.altitude_exaggeration)
+		var highlighted := not deck.highlighted_indices.is_empty()
+		var indices := deck.highlighted_indices if highlighted else field.active
+		# Tint to match the dots being traced -- "just the red paths" should
+		# actually be red, not the neutral default used for an un-highlighted
+		# population. Same low alpha either way; a chapter's highlight_color
+		# is full-alpha for the DOTS, which would oversaturate at trail scale
+		# once hundreds of paths overlap.
+		var color := orbit_trails.DEFAULT_COLOR
+		if highlighted and deck.index < deck.chapters.size():
+			var hc := deck.chapters[deck.index].highlight_color
+			color = Color(hc.r, hc.g, hc.b, orbit_trails.DEFAULT_COLOR.a)
+		orbit_trails.show_paths(indices, field.altitude_exaggeration, color)
 	else:
 		orbit_trails.visible = false
 
