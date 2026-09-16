@@ -104,14 +104,11 @@ func build(catalog: CatalogStore) -> void:
 	# holding still would be a worse tell than the fill cost of redrawing it.
 	right.set_update_always(false)
 
-	# Centred and wide, unlike every other panel -- deliberately, and only
-	# shown while the two side panels are hidden. It sits as low as the wall
-	# goes (see HINT_Y), which leaves no room to move it further out of the
-	# globe's way; making it a full-width letterbox strip instead of a small
-	# floating box is what actually reads as screen furniture rather than an
-	# object sitting inside the 3D scene, regardless of how much of the globe
-	# happens to extend down into that row for a given chapter.
-	hint = _make_panel(Vector2(5.6, 0.10), Vector3(0.0, HINT_Y, PANEL_Z), _build_hint())
+	# Centred, unlike every other panel -- deliberately, and only shown while
+	# the two side panels are hidden. No backdrop: plain white text reads
+	# fine against space on its own, and a card sized to fit the text is
+	# smaller and less obtrusive than one wide enough to look like a bar.
+	hint = _make_panel(Vector2(1.7, 0.10), Vector3(0.0, HINT_Y, PANEL_Z), _build_hint())
 	hint.visible = false
 	hint.set_update_always(false)
 
@@ -247,20 +244,17 @@ func _build_right() -> Control:
 ## Not PanelTheme.backdrop(): its border is sized for a full panel, and at
 ## this hint's small height read as a stark horizontal line slicing across
 ## the globe rather than a soft pill. Background only, no border.
+## No backdrop -- PanelTheme.label() already carries a black outline (see its
+## comment on why: thin light-on-dark text shimmers in stereo without one),
+## which is what actually keeps plain white text readable against space, not
+## a card behind it.
 func _build_hint() -> Control:
-	var bg := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(PanelTheme.BG.r, PanelTheme.BG.g, PanelTheme.BG.b, 0.9)
-	sb.set_corner_radius_all(10)
-	sb.set_content_margin_all(10)
-	bg.add_theme_stylebox_override("panel", sb)
 	var l := PanelTheme.label("", 20, PanelTheme.TEXT)
 	l.set_anchors_preset(Control.PRESET_FULL_RECT)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	bg.add_child(l)
 	_hint_label = l
-	return bg
+	return l
 
 ## Bound to U / gamepad Start in main.gd. Hides both side panels for an
 ## unobstructed view of the globe, and shows the one thing a viewer with
