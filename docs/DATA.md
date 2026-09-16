@@ -70,6 +70,20 @@ every debris-family query silently returns nothing.
 against known values, and an assertion that orbits sweep west-to-east. The
 prograde check is what catches a reflected axis mapping.
 
+The same run also writes `data/orbit_paths.bin`, loaded by `OrbitPathStore`
+and drawn by `OrbitTrails` behind the orbit-path toggle (T / gamepad B).
+Deliberately a *separate* file rather than a longer `--hours`: the position
+ephemeris above is one window shared by every object regardless of period,
+which is fine for interpolating where a LEO object is right now — it laps
+the 3-hour window several times over — but leaves a 12-hour HEO object only
+a quarter of its ellipse traced. `build_orbit_paths()` instead gives every
+object its own 96-point loop across exactly ONE of its own orbital periods,
+real SGP4 propagation at each point, not an idealized two-body ellipse. A
+handful of objects can't be propagated a full period ahead even when the
+main window succeeds — elements are only trustworthy near their epoch —
+and those degenerate to a single repeated point rather than a corrupt
+shape.
+
 ## Space weather — `tools/fetch_space_weather.py`
 
 NOAA SWPC: the OVATION auroral oval, planetary Kp, and GOES X-ray flux. On
