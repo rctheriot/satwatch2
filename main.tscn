@@ -13,11 +13,11 @@
 [ext_resource type="Shader" uid="uid://bbnoxx3xmuxve" path="res://shaders/starfield.gdshader" id="12_sky"]
 [ext_resource type="Script" uid="uid://cd2q7jxv4n4ya" path="res://scripts/camera_director.gd" id="13_cam"]
 [ext_resource type="Shader" uid="uid://mfhj3b8diq0n" path="res://shaders/aurora.gdshader" id="15_aurora"]
-[ext_resource type="Shader" uid="uid://c8euodphvxath" path="res://shaders/clouds.gdshader" id="20_clouds"]
 [ext_resource type="Script" uid="uid://cupbxvvj5n27x" path="res://scripts/sensor_network.gd" id="16_sensors"]
 [ext_resource type="Shader" uid="uid://cmt5gfraeboxs" path="res://shaders/tec.gdshader" id="18_tec"]
 [ext_resource type="Script" uid="uid://bvfmw1hdu5i7p" path="res://scripts/wind_layer.gd" id="19_wind"]
-[ext_resource type="Script" path="res://scripts/orbit_trails.gd" id="21_orbit"]
+[ext_resource type="Shader" uid="uid://c8euodphvxath" path="res://shaders/clouds.gdshader" id="20_clouds"]
+[ext_resource type="Script" uid="uid://cxxgt3dy4l508" path="res://scripts/orbit_trails.gd" id="21_orbit"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("12_sky")
@@ -34,9 +34,9 @@ sky_material = SubResource("ShaderMaterial_sky")
 [sub_resource type="Environment" id="Environment_space"]
 background_mode = 2
 sky = SubResource("Sky_stars")
-ambient_light_source = 3
-ambient_light_color = Color(0.06, 0.08, 0.12, 1)
-ambient_light_energy = 0.18
+ambient_light_source = 2
+ambient_light_color = Color(0.05, 0.06, 0.08, 1)
+ambient_light_energy = 0.06
 tonemap_mode = 3
 glow_enabled = true
 glow_levels/2 = 1.0
@@ -58,6 +58,9 @@ shader_parameter/terminator_softness = 0.1
 shader_parameter/ambient_floor = 0.02
 shader_parameter/ocean_specular = 0.6
 shader_parameter/longitude_offset_deg = 0.0
+shader_parameter/haze_color = Color(0.55, 0.68, 0.88, 1)
+shader_parameter/haze_intensity = 0.3
+shader_parameter/haze_power = 4.5
 
 [sub_resource type="SphereMesh" id="SphereMesh_earth"]
 radius = 1.0
@@ -162,9 +165,8 @@ environment = SubResource("Environment_space")
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1062406323]
 shadow_enabled = true
 
-[node name="Music" type="AudioStreamPlayer" parent="."]
+[node name="Music" type="AudioStreamPlayer" parent="." unique_id=1942798133]
 volume_db = -10.0
-autoplay = false
 
 [node name="SimClock" type="Node" parent="." unique_id=2070158001]
 script = ExtResource("3_clock")
@@ -184,7 +186,7 @@ mesh = SubResource("SphereMesh_earth")
 material_override = SubResource("ShaderMaterial_aurora")
 mesh = SubResource("SphereMesh_aurora")
 
-[node name="Clouds" type="MeshInstance3D" parent="EarthRig/EarthMesh"]
+[node name="Clouds" type="MeshInstance3D" parent="EarthRig/EarthMesh" unique_id=852138955]
 material_override = SubResource("ShaderMaterial_clouds")
 mesh = SubResource("SphereMesh_clouds")
 
@@ -209,20 +211,20 @@ material_override = SubResource("ShaderMaterial_sat")
 script = ExtResource("5_field")
 altitude_exaggeration = 2.0
 
-[node name="OrbitTrails" type="MultiMeshInstance3D" parent="EarthRig"]
+[node name="OrbitTrails" type="MultiMeshInstance3D" parent="EarthRig" unique_id=1096131648]
 script = ExtResource("21_orbit")
 
-[node name="ISSRig" type="Node3D" parent="." unique_id=3821904417]
+[node name="ISSRig" type="Node3D" parent="." unique_id=-473062879]
 visible = false
 
-[node name="KeyLight" type="DirectionalLight3D" parent="ISSRig"]
-rotation_degrees = Vector3(-35, -40, 0)
+[node name="KeyLight" type="DirectionalLight3D" parent="ISSRig" unique_id=172419616]
+transform = Transform3D(0.76604444, 0.3686878, -0.52654076, 0, 0.81915206, 0.57357645, 0.6427876, -0.43938506, 0.62750685, 0, 0, 0)
 light_energy = 2.2
 
-[node name="FillLight" type="DirectionalLight3D" parent="ISSRig"]
-rotation_degrees = Vector3(20, 140, 0)
+[node name="FillLight" type="DirectionalLight3D" parent="ISSRig" unique_id=409003073]
+transform = Transform3D(-0.76604444, 0.21984631, 0.6040228, 0, 0.9396926, -0.34202012, -0.64278764, -0.26200262, -0.7198463, 0, 0, 0)
 light_color = Color(0.65, 0.72, 1, 1)
-light_energy = 0.45
+light_energy = 0.12
 
 [node name="UIRig" type="Node3D" parent="." unique_id=46023464]
 script = ExtResource("6_hud")

@@ -375,6 +375,12 @@ func apply(i: int, animate: bool = true) -> void:
 	camera.target = iss.global_position if (c.show_iss and iss != null) \
 		else rig.global_position
 
+	# The globe's own surface radius (rig.content_scale, since EarthMesh is a
+	# unit sphere), so free zoom stops at the surface with a small buffer
+	# instead of passing through it. No globe in the ISS chapter, so no clamp
+	# there -- see CameraDirector.content_surface_radius.
+	camera.content_surface_radius = rig.content_scale if c.show_earth else 0.0
+
 	# set_filter and the scale change both move the outermost object, so the
 	# derived distance has to be computed after them.
 	# Frame on what is actually drawn. With the satellite field hidden, deriving

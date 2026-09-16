@@ -50,6 +50,7 @@ const KEYBOARD_CONTROLS := [
 	["F", "Toggle free-fly mode"],
 	["T", "Toggle orbit paths"],
 	["M", "Mute / unmute music"],
+	["U", "Hide the menus"],
 	["R", "Reset the view"],
 	["Esc", "Quit"],
 ]
@@ -62,11 +63,13 @@ const GAMEPAD_CONTROLS := [
 	["Y button", "Toggle free-fly mode"],
 	["B button", "Toggle orbit paths"],
 	["Back button", "Mute / unmute music"],
+	["Start button", "Hide the menus"],
 ]
 const SWITCH_ROW := ["H, or X button", "Switch these instructions"]
 
 var left: WorldPanel
 var right: WorldPanel
+var hint: WorldPanel
 
 var _chapter_title: Label
 var _chapter_sub: Label
@@ -81,6 +84,13 @@ var _controls_heading: Label
 var _controls_col: VBoxContainer
 var _site_signature := ""
 var _gamepad_controls := false
+var _menus_visible := true
+var _hint_label: Label
+
+## As low as the physical wall goes: the wall spans y = 0.62..2.66 off the
+## floor (see the class comment), eye-relative that is -1.02..+1.02, and at
+## this height there is no lower position left to push it to.
+const HINT_Y := -0.97
 
 func build(catalog: CatalogStore) -> void:
 	var size := Vector2(1.52, PANEL_HEIGHT)
@@ -93,6 +103,17 @@ func build(catalog: CatalogStore) -> void:
 	# has to keep rendering every frame -- seeing the last digit of a UTC clock
 	# holding still would be a worse tell than the fill cost of redrawing it.
 	right.set_update_always(false)
+
+	# Centred and wide, unlike every other panel -- deliberately, and only
+	# shown while the two side panels are hidden. It sits as low as the wall
+	# goes (see HINT_Y), which leaves no room to move it further out of the
+	# globe's way; making it a full-width letterbox strip instead of a small
+	# floating box is what actually reads as screen furniture rather than an
+	# object sitting inside the 3D scene, regardless of how much of the globe
+	# happens to extend down into that row for a given chapter.
+	hint = _make_panel(Vector2(5.6, 0.10), Vector3(0.0, HINT_Y, PANEL_Z), _build_hint())
+	hint.visible = false
+	hint.set_update_always(false)
 
 func _make_panel(size: Vector2, pos: Vector3, content: Control) -> WorldPanel:
 	var p := WorldPanel.new()
@@ -222,6 +243,39 @@ func _build_right() -> Control:
 	_site_rows.visible = false
 	col.add_child(_site_rows)
 	return bg
+
+## Not PanelTheme.backdrop(): its border is sized for a full panel, and at
+## this hint's small height read as a stark horizontal line slicing across
+## the globe rather than a soft pill. Background only, no border.
+func _build_hint() -> Control:
+	var bg := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(PanelTheme.BG.r, PanelTheme.BG.g, PanelTheme.BG.b, 0.9)
+	sb.set_corner_radius_all(10)
+	sb.set_content_margin_all(10)
+	bg.add_theme_stylebox_override("panel", sb)
+	var l := PanelTheme.label("", 20, PanelTheme.TEXT)
+	l.set_anchors_preset(Control.PRESET_FULL_RECT)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	bg.add_child(l)
+	_hint_label = l
+	return bg
+
+## Bound to U / gamepad Start in main.gd. Hides both side panels for an
+## unobstructed view of the globe, and shows the one thing a viewer with
+## both panels hidden still needs: how to get them back. The reminder names
+## whichever control scheme the (now-hidden) panel was last showing, so it
+## stays correct even if the viewer switched schemes before hiding.
+func toggle_menus() -> void:
+	_menus_visible = not _menus_visible
+	left.visible = _menus_visible
+	right.visible = _menus_visible
+	hint.visible = not _menus_visible
+	if not _menus_visible:
+		_hint_label.text = ("Press Start to show the menus" if _gamepad_controls
+			else "Press U to show the menus")
+		hint.set_update_always(false)
 
 ## Rebuilds the control list for whichever scheme is currently selected.
 ## Called once at startup and again each time the viewer switches schemes --

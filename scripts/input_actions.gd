@@ -31,6 +31,7 @@ static func register() -> void:
 	_action("toggle_controls_help", [_key(KEY_H)], [JOY_BUTTON_X])
 	_action("toggle_music", [_key(KEY_M)], [JOY_BUTTON_BACK])
 	_action("toggle_orbit_trails", [_key(KEY_T)], [JOY_BUTTON_B])
+	_action("toggle_menus", [_key(KEY_U)], [JOY_BUTTON_START])
 
 static func _key(keycode: Key) -> InputEventKey:
 	var e := InputEventKey.new()

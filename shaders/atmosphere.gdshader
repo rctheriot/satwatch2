@@ -23,8 +23,13 @@ void fragment() {
 	// NORMAL points inward on a cull_front shell, so the grazing angle is where
 	// the view direction is most perpendicular to it.
 	float rim = pow(1.0 - abs(dot(normalize(VIEW), normalize(NORMAL))), rim_power);
-	// Only the sunlit limb glows.
-	float lit = smoothstep(-0.35, 0.25, dot(n, normalize(sun_direction)));
+	// Only the sunlit limb glows. The lower bound used to reach 0.35 rad
+	// (about 20 degrees) past the terminator into the night side, which read
+	// as the dark hemisphere's edge glowing -- the night side is supposed to
+	// look genuinely dark. Ending the gate essentially at the terminator
+	// itself keeps the glow on the lit side, where the atmosphere it is
+	// standing in for is actually catching sunlight.
+	float lit = smoothstep(-0.04, 0.15, dot(n, normalize(sun_direction)));
 	ALBEDO = rim_color * rim * intensity * lit;
 	ALPHA = 1.0;
 }

@@ -28,10 +28,29 @@ const MIN_CONTENT_DISTANCE := 1.5
 ## The addon parents its camera pivot at this height on the player body.
 const PIVOT_HEIGHT := 1.64
 
-@export var orbit_speed := 1.8
-@export var dolly_speed := 1.4
+## Halved from the original 1.8 / 1.4 -- gamepad stick and W/S both drove
+## these directly (mouse drag and the scroll wheel use their own fixed
+## sensitivities, untouched), and both read as too fast to control precisely.
+@export var orbit_speed := 0.9
+@export var dolly_speed := 0.7
 @export var min_distance := 0.15
 @export var max_distance := 400.0
+
+## Kept clear of the content surface when dollying in -- see
+## content_surface_radius. Small relative to a typical globe radius (0.3 to
+## 1.6 world units across the chapters), enough to stop short of the surface
+## without reading as a hard wall.
+const SURFACE_BUFFER := 0.15
+
+## Set by ChapterDeck.apply() to the current chapter's globe radius (world
+## units), or 0 for a chapter with no globe to clip against (the ISS chapter).
+## Zooming in used to be able to pass straight through the Earth's surface
+## and out the other side, since min_distance was a single constant with no
+## idea how big the content actually is this chapter.
+var content_surface_radius := 0.0
+
+func _min_zoom_distance() -> float:
+	return maxf(min_distance, content_surface_radius + SURFACE_BUFFER)
 
 var wall: Node                       ## StereoWallDisplay
 var target: Vector3 = Vector3.ZERO   ## World point we orbit.
@@ -98,7 +117,7 @@ func _sync_from_body() -> void:
 		return
 	var eye := _pivot.global_position
 	var to_target := target - eye
-	distance = clampf(to_target.length(), min_distance, max_distance)
+	distance = clampf(to_target.length(), _min_zoom_distance(), max_distance)
 	if distance > 0.001:
 		var d := to_target / distance
 		azimuth = atan2(-d.x, -d.z)
@@ -159,7 +178,7 @@ func apply_user_orbit(d_az: float, d_el: float) -> void:
 
 func apply_user_zoom(factor: float) -> void:
 	take_control()
-	distance = clampf(distance * factor, min_distance, max_distance)
+	distance = clampf(distance * factor, _min_zoom_distance(), max_distance)
 
 func _orbit(d_az: float, d_el: float) -> void:
 	azimuth = fposmod(azimuth + d_az, TAU)

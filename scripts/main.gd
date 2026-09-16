@@ -381,7 +381,16 @@ func _process(_delta: float) -> void:
 	_sat_material.set_shader_parameter("base_color_override", field.base_color)
 	_sat_material.set_shader_parameter("reference_depth",
 		maxf(camera.distance_to(rig.global_position), 0.2))
-	sun_light.look_at_from_position(sun * 50.0, Vector3.ZERO, Vector3.UP)
+	# The ISS chapter has its own dedicated key/fill lights (children of
+	# ISSRig, gated by its visibility -- see main.tscn) rather than this
+	# Earth-relative sun direction, which has no real relationship to a
+	# free-standing model with no orbital position of its own. Left on, it
+	# was a second, uncontrolled light source washing out the station's
+	# shadow side from whatever angle the inertial sun happened to be at.
+	var showing_iss := _current_chapter != null and _current_chapter.show_iss
+	sun_light.visible = not showing_iss
+	if not showing_iss:
+		sun_light.look_at_from_position(sun * 50.0, Vector3.ZERO, Vector3.UP)
 	_sky_material.set_shader_parameter("frame_inverse", Basis(frame).inverse())
 	if aurora.visible:
 		_aurora_material.set_shader_parameter("sun_direction", sun)
@@ -437,6 +446,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("toggle_orbit_trails"):
 		_orbit_trails_on = not _orbit_trails_on
 		_refresh_orbit_trails()
+	elif event.is_action_pressed("toggle_menus"):
+		hud.toggle_menus()
 
 func _show_missing_data_notice() -> void:
 	# Deliberately a 3D label, not a CanvasLayer: on the wall a CanvasLayer is

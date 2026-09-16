@@ -109,10 +109,12 @@ void fragment() {
 	}
 
 	// Limb haze -- see the uniform comment above for why this is keyed to
-	// view angle, not sun angle. Weak but present on the night limb too:
-	// real photos still show a faint scattered glow there.
+	// view angle, not sun angle. Near-zero on the night limb on purpose: the
+	// dark side is supposed to read as genuinely dark, and even a small
+	// blend here showed up as the whole silhouette looking faintly lit
+	// rather than just the day side.
 	float fresnel = pow(1.0 - clamp(abs(dot(n, view)), 0.0, 1.0), haze_power);
-	color = mix(color, haze_color, fresnel * haze_intensity * mix(0.15, 1.0, day));
+	color = mix(color, haze_color, fresnel * haze_intensity * mix(0.02, 1.0, day));
 
 	ALBEDO = color;
 }
