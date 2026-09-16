@@ -18,6 +18,7 @@
 [ext_resource type="Script" uid="uid://gvox2i7mmiot" path="res://scripts/aircraft_layer.gd" id="17_air"]
 [ext_resource type="Shader" uid="uid://cmt5gfraeboxs" path="res://shaders/tec.gdshader" id="18_tec"]
 [ext_resource type="Script" uid="uid://bvfmw1hdu5i7p" path="res://scripts/wind_layer.gd" id="19_wind"]
+[ext_resource type="Script" path="res://scripts/orbit_trails.gd" id="21_orbit"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_sky"]
 shader = ExtResource("12_sky")
@@ -179,6 +180,10 @@ environment = SubResource("Environment_space")
 [node name="Sun" type="DirectionalLight3D" parent="." unique_id=1062406323]
 shadow_enabled = true
 
+[node name="Music" type="AudioStreamPlayer" parent="."]
+volume_db = -10.0
+autoplay = false
+
 [node name="SimClock" type="Node" parent="." unique_id=2070158001]
 script = ExtResource("3_clock")
 rate_index = 3
@@ -225,6 +230,9 @@ mesh = SubResource("SphereMesh_atmo")
 material_override = SubResource("ShaderMaterial_sat")
 script = ExtResource("5_field")
 altitude_exaggeration = 2.0
+
+[node name="OrbitTrails" type="MultiMeshInstance3D" parent="EarthRig"]
+script = ExtResource("21_orbit")
 
 [node name="UIRig" type="Node3D" parent="." unique_id=46023464]
 script = ExtResource("6_hud")

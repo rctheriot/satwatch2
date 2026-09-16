@@ -21,6 +21,7 @@ const WINDS_PATH := "res://data/winds.json"
 ## tools/find_conjunctions.py is a standalone analysis utility and is not wired
 ## into the demo -- see docs/DATA.md.
 const AURORA_TEXTURE_PATH := "res://data/aurora.png"
+const ORBIT_PATHS_PATH := "res://data/orbit_paths.bin"
 ## Clouds slip this fraction of the Earth's own rotation per sidereal day --
 ## real jet-stream-level winds are a small delta on top of bulk co-rotation,
 ## not an independent speed. Purely a decorative constant, tuned by eye.
@@ -31,6 +32,7 @@ const CLOUD_DRIFT_FRACTION := 0.05
 @onready var earth: MeshInstance3D = $EarthRig/EarthMesh
 @onready var atmosphere: MeshInstance3D = $EarthRig/Atmosphere
 @onready var field: SatelliteField = $EarthRig/SatelliteField
+@onready var orbit_trails: OrbitTrails = $EarthRig/OrbitTrails
 @onready var hud: Hud = $UIRig
 @onready var deck: ChapterDeck = $ChapterDeck
 @onready var camera: CameraDirector = $CameraDirector
@@ -41,12 +43,17 @@ const CLOUD_DRIFT_FRACTION := 0.05
 @onready var aurora: MeshInstance3D = $EarthRig/EarthMesh/Aurora
 @onready var clouds: MeshInstance3D = $EarthRig/EarthMesh/Clouds
 @onready var sun_light: DirectionalLight3D = $Sun
+@onready var music: AudioStreamPlayer = $Music
 @onready var wall: Node = $StereoWallDisplay
 
 var store := EphemerisStore.new()
 var catalog := CatalogStore.new()
 var weather := SpaceWeatherStore.new()
 var tec_store := TecStore.new()
+var orbit_path_store := OrbitPathStore.new()
+## Global and persistent across chapters -- see OrbitTrails' class comment for
+## why this is not a per-chapter Chapter field.
+var _orbit_trails_on := false
 
 var _earth_material: ShaderMaterial
 var _atmo_material: ShaderMaterial
@@ -71,6 +78,7 @@ func _ready() -> void:
 	_clouds_material = clouds.material_override as ShaderMaterial
 	_load_aurora()
 	_load_tec()
+	_load_music()
 	var env: Environment = $WorldEnvironment.environment
 	_sky_material = env.sky.sky_material as ShaderMaterial
 	_apply_earth_textures()
@@ -88,6 +96,14 @@ func _ready() -> void:
 
 	field.setup(store, catalog.objects)
 	rig.field = field
+
+	# Optional layer: orbit trails just stay unavailable without it -- the
+	# toggle does nothing rather than erroring. Index order must match
+	# EphemerisStore/CatalogStore exactly; see OrbitPathStore's class comment.
+	if orbit_path_store.load_from(ORBIT_PATHS_PATH) == OK:
+		orbit_trails.build(orbit_path_store)
+	else:
+		print("No orbit paths -- run tools/build_ephemeris.py for the trails toggle.")
 
 	camera.wall = wall
 	camera.target = rig.global_position
@@ -220,6 +236,20 @@ func _load_aurora() -> void:
 		weather.aurora_forecast_utc])
 
 
+const MUSIC_PATH := "res://assets/background_music.mp3"
+
+## Optional: silent without it. Loops for the length of the demo rather than
+## once, since a wall running unattended between visitors should not go quiet
+## partway through.
+func _load_music() -> void:
+	if not ResourceLoader.exists(MUSIC_PATH):
+		return
+	var stream: AudioStream = load(MUSIC_PATH)
+	if stream is AudioStreamMP3:
+		stream.loop = true
+	music.stream = stream
+	music.play()
+
 ## Optional layer: without the texture the shell draws nothing.
 func _load_tec() -> void:
 	if not tec_store.load_from(TEC_PATH) \
@@ -236,6 +266,17 @@ func _load_tec() -> void:
 
 func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 	hud.set_chapter(c, idx, total)
+	_refresh_orbit_trails()
+
+## Rebuilds the drawn trail set from the chapter's current filtered population
+## (field.active). Cheap to call on every chapter change since it is the only
+## time it runs -- see OrbitTrails.show_paths() for the per-frame cost this
+## avoids.
+func _refresh_orbit_trails() -> void:
+	if _orbit_trails_on:
+		orbit_trails.show_paths(field.active, field.altitude_exaggeration)
+	else:
+		orbit_trails.visible = false
 
 ## UI that must stay fixed on the physical wall is PARENTED to the camera pivot
 ## rather than having its transform copied each frame.
@@ -353,6 +394,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		camera.toggle_mode()
 	elif event.is_action_pressed("toggle_controls_help"):
 		hud.toggle_controls_scheme()
+	elif event.is_action_pressed("toggle_music"):
+		music.stream_paused = not music.stream_paused
+	elif event.is_action_pressed("toggle_orbit_trails"):
+		_orbit_trails_on = not _orbit_trails_on
+		_refresh_orbit_trails()
 
 func _show_missing_data_notice() -> void:
 	# Deliberately a 3D label, not a CanvasLayer: on the wall a CanvasLayer is

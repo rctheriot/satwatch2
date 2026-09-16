@@ -17,6 +17,8 @@ import pathlib
 import struct
 import sys
 
+import numpy as np
+
 from sgp4.api import SatrecArray, Satrec, jday
 from sgp4 import omm
 
@@ -183,6 +185,63 @@ def load_gp(path):
     return sats, meta
 
 
+PATH_POINTS = 96
+PATH_MAGIC = b"OPTH"
+PATH_VERSION = 1
+
+
+def build_orbit_paths(sats, meta, start):
+    """One closed loop per object, sampled evenly across that object's OWN
+    orbital period, independent of --hours/--step.
+
+    This exists because the position ephemeris above is a single window shared
+    by every object regardless of period -- 3 hours by default. That is fine
+    for interpolating where an object is RIGHT NOW (a LEO object laps it
+    several times over), but a HEO object with an ~12h period only traces a
+    quarter of its ellipse in that window: not a wrong picture, an incomplete
+    one, and the incompleteness is exactly where an orbit's shape -- fast at
+    perigee, slow at apogee -- would otherwise read clearly.
+
+    Extending the shared window to cover HEO's period would either quadruple
+    the ephemeris (same step, longer span) or coarsen the interpolation every
+    other object uses (same sample count, longer span) for a chapter this
+    change does not need. Giving every object its own period-length loop,
+    fixed at PATH_POINTS samples regardless of how long that period is, costs
+    a few tens of MB and touches nothing about the live position data.
+
+    Genuine SGP4 propagation, same as the main ephemeris -- not an idealized
+    two-body ellipse. A handful of objects fail to propagate a full period
+    ahead even when the main window succeeds (elements are only trustworthy
+    near their epoch); those degenerate to a single repeated point, which
+    draws nothing rather than a corrupt shape.
+    """
+    jd0, fr0 = jday(start.year, start.month, start.day,
+                    start.hour, start.minute, start.second)
+    n_obj = len(sats)
+    out = np.empty((n_obj, PATH_POINTS, 3), dtype="<f4")
+    n_degenerate = 0
+    for i, (sat, m) in enumerate(zip(sats, meta)):
+        period_s = m["period_min"] * 60.0
+        step_s = period_s / PATH_POINTS
+        frac = fr0 + (np.arange(PATH_POINTS) * step_s) / 86400.0
+        jd_i = jd0 + np.floor(frac)
+        fr_i = frac - np.floor(frac)
+        err, r, _v = sat.sgp4_array(jd_i, fr_i)
+        if (err != 0).any():
+            n_degenerate += 1
+            out[i, :, :] = teme_to_godot(*sat.sgp4(jd0, fr0)[1])
+            continue
+        gx, gy, gz = teme_to_godot(r[:, 0], r[:, 1], r[:, 2])
+        out[i, :, 0] = gx
+        out[i, :, 1] = gy
+        out[i, :, 2] = gz
+    out /= RE_KM
+    if n_degenerate:
+        print(f"  {n_degenerate} objects could not propagate a full period "
+              "ahead; drawn as a single point instead of a corrupt loop")
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--gp", type=pathlib.Path, help="GP JSON (default: newest in data/gp_cache)")
@@ -222,7 +281,6 @@ def main():
     print(f"  propagating {n_samples} samples x {args.step:.0f}s "
           f"({args.hours:.1f}h) from {start.isoformat()}")
 
-    import numpy as np
     arr = SatrecArray(sats)
     jd_a = np.array(jds)
     fr_a = np.array(frs)
@@ -245,6 +303,7 @@ def main():
 
     ok = good & near & consistent
     r, meta = r[ok], [m for m, keep in zip(meta, ok) if keep]
+    sats = [s for s, keep in zip(sats, ok) if keep]
     n_obj = len(meta)
     print(f"  dropped {int((~good).sum())} with SGP4 errors (decayed / bad elements)")
     print(f"  dropped {int((good & ~near).sum())} beyond {MAX_RADIUS} Re (off-scene)")
@@ -277,6 +336,18 @@ def main():
     with out.open("wb") as fh:
         fh.write(header)
         fh.write(q.tobytes())
+
+    print(f"\n  building orbit paths ({PATH_POINTS} points/object, one full "
+          "period each)...")
+    paths = build_orbit_paths(sats, meta, start)
+    paths_out = ROOT / "data" / "orbit_paths.bin"
+    paths_header = struct.pack("<4sIII", PATH_MAGIC, PATH_VERSION, n_obj, PATH_POINTS)
+    assert len(paths_header) == 16, len(paths_header)
+    with paths_out.open("wb") as fh:
+        fh.write(paths_header)
+        fh.write(np.ascontiguousarray(paths).tobytes())
+    paths_mb = paths_out.stat().st_size / 1e6
+    print(f"  wrote data/orbit_paths.bin  {paths_mb:.1f} MB")
 
     counts = {}
     for m in meta:

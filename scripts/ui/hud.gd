@@ -48,6 +48,8 @@ const KEYBOARD_CONTROLS := [
 	["Space", "Pause or resume time"],
 	["[ and ]", "Slow down or speed up time"],
 	["F", "Toggle free-fly mode"],
+	["T", "Toggle orbit paths"],
+	["M", "Mute / unmute music"],
 	["R", "Reset the view"],
 	["Esc", "Quit"],
 ]
@@ -58,6 +60,8 @@ const GAMEPAD_CONTROLS := [
 	["A button", "Pause or resume time"],
 	["Shoulder buttons", "Slow down or speed up time"],
 	["Y button", "Toggle free-fly mode"],
+	["B button", "Toggle orbit paths"],
+	["Back button", "Mute / unmute music"],
 ]
 const SWITCH_ROW := ["H, or X button", "Switch these instructions"]
 
