@@ -111,8 +111,8 @@ func _check_deck_shape() -> void:
 			else str(dupes))
 
 	# Altitude climbs through the build-up, then everything together.
-	var expected := ["LOW EARTH ORBIT", "MEDIUM EARTH ORBIT", "GEOSTATIONARY BELT",
-		"HIGHLY ELLIPTICAL", "THE FULL CATALOG"]
+	var expected := ["LOW EARTH ORBIT", "MEDIUM EARTH ORBIT", "GEOSTATIONARY ORBIT",
+		"HIGHLY ELLIPTICAL ORBIT", "THE FULL CATALOG"]
 	var got := []
 	for i in mini(expected.size(), chapters.size()):
 		got.append(chapters[i].title)

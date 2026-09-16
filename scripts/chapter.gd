@@ -11,6 +11,10 @@ extends Resource
 ## on the right panel. A wall of unexplained dots impresses nobody: the point of
 ## each chapter is the thing it makes visible, and that has to be said.
 @export_multiline var explanation: String = ""
+## Color key rows for the right panel, e.g. [{"color": Color(...), "label":
+## "Debris from this event"}]. Only chapters where color carries meaning beyond
+## the regime legend need one.
+@export var legend: Array[Dictionary] = []
 
 @export_group("Content")
 ## Empty means every regime.
@@ -52,6 +56,9 @@ extends Resource
 @export var show_tec: bool = false
 ## Show advected 250 hPa wind streamlines.
 @export var show_winds: bool = false
+## Show the auroral oval shell. Only meaningful in the space weather chapter --
+## it was previously left visible everywhere its data had loaded.
+@export var show_aurora: bool = false
 ## Hide the satellite field. The air-domain chapter needs this: aircraft and
 ## satellites are 40x apart in altitude, so any exaggeration that makes the air
 ## layer visible would badly misrepresent where the satellites are.

@@ -98,13 +98,14 @@ func _ready() -> void:
 	sensors.build()
 	sensors.visible = false
 
-	hud.build(catalog, weather)
+	hud.build(catalog)
 
 	deck.camera = camera
 	deck.sensors = sensors
 	deck.aircraft = aircraft
 	deck.tec = tec
 	deck.winds = winds
+	deck.aurora = aurora
 	deck.rig = rig
 	deck.field = field
 	deck.catalog = catalog
@@ -231,7 +232,6 @@ func _load_tec() -> void:
 
 func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 	hud.set_chapter(c, idx, total)
-	hud.set_exaggeration(c.altitude_exaggeration)
 
 ## UI that must stay fixed on the physical wall is PARENTED to the camera pivot
 ## rather than having its transform copied each frame.
@@ -305,9 +305,6 @@ func _process(_delta: float) -> void:
 		_aurora_material.set_shader_parameter("altitude_exaggeration",
 			field.altitude_exaggeration)
 
-	hud.set_comfort(camera.eye_position().distance_to(rig.global_position)
-		- deck.visible_radius_m)
-
 	if aircraft.visible:
 		aircraft.update_positions(t)
 	if winds.visible:
@@ -332,7 +329,8 @@ func _process(_delta: float) -> void:
 			hud.set_site_rows(sensors.ranked_sites(7), sensors.total_visible)
 			field.set_highlight(sensors.visible_indices())
 
-	hud.set_time(clock.utc_string(), clock.rate_label())
+	hud.set_time(clock.utc_string(), clock.rate_label(), clock.loop_progress(),
+		clock.span_seconds / 3600.0)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if not _ready_ok:

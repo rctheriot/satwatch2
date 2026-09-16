@@ -37,6 +37,15 @@ func _process(delta: float) -> void:
 	now_unix = epoch_unix + fposmod(now_unix + delta * rate - epoch_unix, span_seconds)
 	time_changed.emit(now_unix)
 
+## 0 at the start of the propagated window, approaching 1 at the end, where the
+## clock wraps and every position jumps back to its starting point. Exposed so
+## the HUD can show the viewer where they are in that loop, rather than the
+## jump just looking like a glitch.
+func loop_progress() -> float:
+	if span_seconds <= 0.0:
+		return 0.0
+	return fposmod(now_unix - epoch_unix, span_seconds) / span_seconds
+
 func rate() -> float:
 	return 0.0 if paused else RATE_STEPS[clampi(rate_index, 0, RATE_STEPS.size() - 1)]
 

@@ -122,13 +122,6 @@ func eye_position() -> Vector3:
 func distance_to(point: Vector3) -> float:
 	return eye_position().distance_to(point)
 
-## Screen parallax in millimetres for content at distance z. Negative is in
-## front of the wall plane.
-static func parallax_mm(z: float) -> float:
-	if z <= 0.01:
-		return -999.0
-	return EYE_SEPARATION * (1.0 - WALL_DISTANCE / z) * 1000.0
-
 func _unhandled_input(event: InputEvent) -> void:
 	if mode != Mode.ORBIT:
 		return

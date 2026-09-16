@@ -44,18 +44,12 @@ func load_from(path: String) -> Error:
 ## through "unsettled".
 func storm_label() -> String:
 	if kp_index < 0.0:
-		return "—"
+		return "no data"
 	if kp_index < 4.0:
 		return "quiet"
 	if kp_index < 5.0:
 		return "unsettled"
 	return "G%d storm" % clampi(int(kp_index) - 4, 1, 5)
-
-func summary() -> String:
-	if not loaded:
-		return ""
-	return "SPACE WEATHER  Kp %.0f (%s) · X-ray %s · aurora peak %d%%" % [
-		kp_index, storm_label(), xray_class, aurora_peak_probability]
 
 ## The aurora layer is a forecast from a model, not an observation, and saying
 ## so costs nothing.

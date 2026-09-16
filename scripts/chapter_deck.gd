@@ -24,6 +24,7 @@ var sensors: SensorNetwork
 var aircraft: AircraftLayer
 var tec: MeshInstance3D
 var winds: WindLayer
+var aurora: MeshInstance3D
 var rig: ContentRig
 var field: SatelliteField
 var catalog: CatalogStore
@@ -46,12 +47,12 @@ func _default_deck() -> Array[Chapter]:
 	# --- Build-up: one regime at a time ---------------------------------------
 	var leo := Chapter.new()
 	leo.title = "LOW EARTH ORBIT"
-	leo.subtitle = "Below 2,000 km — where the traffic is"
-	leo.explanation = """Every point is a tracked object below 2,000 km — working satellites, spent rocket bodies, and debris. They are not spread evenly. The bands are the orbits everyone wants: sun-synchronous paths for imaging, and the shells the large constellations fly in.
+	leo.subtitle = "Below 2,000 kilometers, where most satellites are"
+	leo.explanation = """This is low Earth orbit: everything flying below 2,000 kilometers up. It's the most crowded layer in space, home to working satellites, old rocket stages, and leftover debris from decades of launches.
 
-An orbit here takes about 90 minutes, so a satellite passes over any given point briefly and often.
+A satellite here circles the planet in about 90 minutes, so it passes overhead often but stays in view for only a few minutes at a time. That's why watching any one spot on Earth takes a lot of satellites working together.
 
-Altitude is exaggerated x2 so the shells separate. At true scale this entire layer sits within a few percent of the globe's own radius."""
+To make the layers easier to see, altitudes in this scene are stretched to twice their real size. At true scale, this entire band would sit almost flush against the globe."""
 	leo.regimes = ["LEO"]
 	leo.content_scale = 1.45
 	leo.altitude_exaggeration = 2.0
@@ -59,25 +60,25 @@ Altitude is exaggerated x2 so the shells separate. At true scale this entire lay
 
 	var meo := Chapter.new()
 	meo.title = "MEDIUM EARTH ORBIT"
-	meo.subtitle = "Navigation, around 20,000 km"
-	meo.explanation = """Far fewer objects, much further out. This is navigation: GPS, GLONASS, Galileo and BeiDou near 20,000 km, where one orbit takes about twelve hours.
+	meo.subtitle = "Navigation satellites, about 20,000 kilometers up"
+	meo.explanation = """Much farther out, and with far fewer satellites, this is where navigation systems live: GPS and its counterparts from other countries, orbiting near 20,000 kilometers up. A satellite here takes about twelve hours to circle the Earth once.
 
-Height buys coverage. From up here each satellite sees a huge fraction of the Earth at once, so around thirty give continuous global service — against thousands needed in low orbit.
+Being higher up means seeing more of the planet at once. A single satellite up here can be in view across a huge stretch of Earth, so it takes only about thirty of them, spread around the globe, to give steady worldwide coverage. Low Earth orbit needs thousands to do the same job.
 
-Notice the globe has shrunk. The scale changed, not the Earth."""
+Notice the globe looks smaller here. That's the camera pulling back to fit the wider orbit in view. The Earth hasn't changed size, only the scale of the picture."""
 	meo.regimes = ["MEO"]
 	meo.content_scale = 0.40
 	meo.altitude_exaggeration = 1.0
 	out.append(meo)
 
 	var geo := Chapter.new()
-	geo.title = "GEOSTATIONARY BELT"
-	geo.subtitle = "35,786 km — one orbit per day"
-	geo.explanation = """At 35,786 km an orbit takes exactly one sidereal day. A satellite over the equator therefore turns with the Earth and appears to hold still, so a ground antenna can point once and stay pointed.
+	geo.title = "GEOSTATIONARY ORBIT"
+	geo.subtitle = "35,786 kilometers up, one lap per day"
+	geo.explanation = """At exactly 35,786 kilometers above the equator, a satellite takes one full day to circle the Earth, the same time it takes the planet to spin once. That means the satellite appears to hang still over one spot on the ground.
 
-That single fact makes this ring the most valuable real estate in space: communications, weather, and missile warning all live here.
+That's an extremely useful trick. A satellite dish can point at one fixed spot in the sky and never have to move. Because of that, this ring holds some of the most valuable real estate in space: communications, weather forecasting, and early warning satellites all live here.
 
-It is also fixed, crowded and entirely predictable — which cuts both ways. Everything in this belt knows where everything else is, and so does everyone on the ground."""
+It's also crowded and completely predictable. Every operator up here knows exactly where every other satellite is, and so does everyone tracking from the ground."""
 	geo.regimes = ["GEO"]
 	geo.content_scale = 0.40
 	geo.altitude_exaggeration = 1.0
@@ -85,13 +86,13 @@ It is also fixed, crowded and entirely predictable — which cuts both ways. Eve
 	out.append(geo)
 
 	var heo := Chapter.new()
-	heo.title = "HIGHLY ELLIPTICAL"
-	heo.subtitle = "Fast at perigee, loitering at apogee"
-	heo.explanation = """These orbits trade a fast, low perigee for a slow, high apogee. A Molniya orbit spends most of its twelve hours loitering over one hemisphere and crosses the rest quickly.
+	heo.title = "HIGHLY ELLIPTICAL ORBIT"
+	heo.subtitle = "Fast down low, slow way up high"
+	heo.explanation = """These orbits are stretched into long ellipses instead of circles. A satellite on one of these paths swings in close to Earth and moves very fast for a short time, then climbs out to a high, slow arc where it lingers for hours before swinging back.
 
-That buys long dwell over high latitudes, which a geostationary satellite sitting on the equator cannot see well.
+That long, slow stretch is useful for watching places a satellite parked over the equator can't see well, like the far north or far south. A satellite on one of these paths can spend most of its time hovering over one hemisphere before racing back around.
 
-They also cut through every other regime on the way past, which is what makes them matter for anyone tracking what is up there."""
+Because these paths stretch from close to Earth all the way out past the other orbit types, they cut through every other layer on this wall on their way past."""
 	heo.regimes = ["HEO"]
 	heo.content_scale = 0.40
 	heo.altitude_exaggeration = 1.0
@@ -104,78 +105,90 @@ They also cut through every other regime on the way past, which is what makes th
 	# the viewer's head. Scale is per-chapter, and this transition is the reveal.
 	var full := Chapter.new()
 	full.title = "THE FULL CATALOG"
-	full.subtitle = "All of it, at one scale"
-	full.explanation = """All four populations at once, at true scale.
+	full.subtitle = "Every tracked object, at true scale"
+	full.explanation = """This is everything at once, drawn at true scale. No exaggeration this time.
 
-The bright ball is the whole of low orbit, compressed against the planet. Green is the navigation constellations; the outer ring is the geostationary belt; red is the elliptical orbits cutting through everything.
+The bright, crowded ball hugging the planet is low Earth orbit. Green shows the navigation satellites farther out. The thin outer ring is the geostationary belt. Red marks the stretched, looping orbits that cut across everything else.
 
-Almost all of the objects are in the ball. Almost all of the value is in the ring. That mismatch is most of what makes this problem hard."""
+Almost all of the tracked objects are packed into that inner ball. Almost all of the value sits in the thin outer ring. That mismatch, thousands of objects crowded low and a handful of critical satellites spread thin and far out, is most of what makes keeping track of space traffic hard."""
 	full.regimes = []
 	full.content_scale = 0.40
 	full.altitude_exaggeration = 1.0
 	full.point_size = 0.85
 	full.elevation = 0.35
 	full.transition_seconds = 5.0
+	full.legend = [
+		{"color": PanelTheme.REGIME_COLORS["LEO"], "label": "Low Earth orbit"},
+		{"color": PanelTheme.REGIME_COLORS["MEO"], "label": "Medium Earth orbit (navigation)"},
+		{"color": PanelTheme.REGIME_COLORS["GEO"], "label": "Geostationary belt"},
+		{"color": PanelTheme.REGIME_COLORS["HEO"], "label": "Highly elliptical orbits"},
+	]
 	out.append(full)
 
 	# --- Specific cases -------------------------------------------------------
 	var starlink := Chapter.new()
-	starlink.title = "CONSTELLATION"
-	starlink.subtitle = "One operator against everything else in LEO"
-	starlink.explanation = """Green is Starlink. A single operator now accounts for a large share of everything in low orbit, flown as a tightly managed shell at one altitude.
+	starlink.title = "ONE CONSTELLATION"
+	starlink.subtitle = "A single operator against everything else in low orbit"
+	starlink.explanation = """Green marks satellites from a single company's constellation, flown together at one altitude as a tightly managed fleet. Blue is every other tracked object in low Earth orbit, at the same scale.
 
-Blue is every other tracked object in LEO, at the same scale.
-
-The contrast is the point: the shape of the low-orbit population changed in under a decade, and it was one decision that changed it."""
+A single operator now accounts for a large share of everything flying in low orbit. That shift happened in under a decade, and it was one company's decision that drove it."""
 	starlink.regimes = ["LEO"]
 	starlink.highlight_name = "STARLINK"
 	starlink.highlight_color = Color(0.36, 1.0, 0.52)
 	starlink.content_scale = 1.2
 	starlink.altitude_exaggeration = 2.0
+	starlink.legend = [
+		{"color": Color(0.36, 1.0, 0.52), "label": "This constellation"},
+		{"color": PanelTheme.REGIME_COLORS["LEO"], "label": "Everything else in low orbit"},
+	]
 	out.append(starlink)
 
 	var fengyun := Chapter.new()
-	fengyun.title = "BREAKUP: FENGYUN-1C"
-	fengyun.subtitle = "2007 ASAT test — still on orbit"
-	fengyun.explanation = """In 2007 an anti-satellite test destroyed the Fengyun-1C weather satellite at 865 km.
+	fengyun.title = "A SATELLITE BREAKUP"
+	fengyun.subtitle = "A 2007 test, and debris still in orbit today"
+	fengyun.explanation = """In 2007, a missile test deliberately destroyed a weather satellite called Fengyun-1C, orbiting about 865 kilometers up. Red marks the debris from that single event that is still being tracked today, nearly twenty years later.
 
-Red is the debris from that single event still being tracked today, nearly twenty years later. The breakup spread it into a shell crossing most other low orbits.
+The explosion scattered wreckage into a wide shell of orbits, crossing paths with most other satellites in low Earth orbit.
 
-At that altitude there is too little atmosphere to pull it down on any useful timescale. One test, thousands of objects, indefinitely."""
+At that altitude there's too little air to drag the debris back down anytime soon. One test created thousands of fragments that will, for practical purposes, stay in orbit indefinitely."""
 	fengyun.regimes = ["LEO"]
 	fengyun.highlight_intl_prefix = "1999-025"
 	fengyun.content_scale = 1.45
 	fengyun.altitude_exaggeration = 2.0
 	fengyun.elevation = 0.55
+	fengyun.legend = [
+		{"color": fengyun.highlight_color, "label": "Debris from this event"},
+		{"color": PanelTheme.REGIME_COLORS["LEO"], "label": "Other tracked objects"},
+	]
 	out.append(fengyun)
 
 	var collision := Chapter.new()
-	collision.title = "COLLISION: 2009"
-	collision.subtitle = "Cosmos 2251 and Iridium 33"
-	collision.explanation = """In 2009 the defunct Cosmos 2251 struck the working Iridium 33 satellite at 790 km, closing at roughly 11 km/s.
+	collision.title = "A SATELLITE COLLISION"
+	collision.subtitle = "2009: two satellites destroyed in low orbit"
+	collision.explanation = """In 2009, a defunct Russian satellite called Cosmos 2251 collided with a working American communications satellite, Iridium 33, at about 790 kilometers up. They struck each other at roughly 11 kilometers per second, over 20 times the speed of a rifle bullet.
 
-Red is the debris still catalogued from it. One collision produced two expanding clouds at an altitude already heavily used.
+Red marks the debris still tracked from that single crash. One collision produced two separate, expanding clouds of wreckage, right in an altitude band that's heavily used.
 
-This is the mechanism behind the concern that debris begets debris: every fragment is itself a projectile, in the orbit band that everything else needs."""
+This is the risk experts worry about most: every fragment becomes its own hazard, in the same crowded band everyone else needs to fly through."""
 	collision.regimes = ["LEO"]
 	collision.highlight_intl_prefix = "1993-036"
 	collision.content_scale = 1.45
 	collision.altitude_exaggeration = 2.0
 	collision.elevation = 0.5
+	collision.legend = [
+		{"color": collision.highlight_color, "label": "Debris from this collision"},
+		{"color": PanelTheme.REGIME_COLORS["LEO"], "label": "Other tracked objects"},
+	]
 	out.append(collision)
 
 	var sensors := Chapter.new()
-	sensors.title = "SURVEILLANCE NETWORK"
+	sensors.title = "WHO IS WATCHING"
 	sensors.subtitle = "What the ground can actually see, right now"
-	sensors.explanation = """Green objects are in view of at least one ground site right now. Red are seen by nobody.
+	sensors.explanation = """Green objects are currently in view of at least one tracking site on the ground. Red objects aren't being seen by anyone at this moment.
 
-Blue volumes are radar coverage: everything above a site's 3-degree horizon mask, out to a nominal range. They look flat because they are — a 3-degree mask means an 87-degree half-angle, so a surveillance radar really does see close to a hemisphere. That is how a handful of sites watch most of low orbit.
+The wide blue domes are radar coverage, reaching out to a representative range. They look almost flat on top because they nearly are: a radar that can see down to 3 degrees above the horizon covers almost half the sky, which is how a handful of ground stations can watch most of low orbit between them. The amber points are optical telescopes, which stare at a narrow patch of sky and track objects one at a time instead of sweeping a wide fence like radar.
 
-Amber markers are optical telescopes. They are not drawn as volumes because they are narrow-field instruments that stare at one patch and track individual objects, rather than sweeping a fence.
-
-Watch where the red is. The network is concentrated in the northern hemisphere, and the southern gap is real.
-
-Optical sites need darkness on the ground and sunlight on the target at once, so most are off at any moment. Counts are exact geometry; ranges are nominal."""
+Notice where the red clusters: coverage is heaviest in the northern hemisphere, and that gap in the south is real. Optical telescopes also need darkness on the ground and sunlight on the target at the same time, so many sit idle whenever that's not the case. The counts shown here come from exact geometry. The coverage domes themselves are representative, not exact sensor specifications, which aren't public."""
 	sensors.regimes = ["LEO"]
 	sensors.show_sensors = true
 	# Green in view, red out of view. Both states matter here, so neither is
@@ -186,6 +199,12 @@ Optical sites need darkness on the ground and sunlight on the target at once, so
 	sensors.content_scale = 1.45
 	sensors.altitude_exaggeration = 2.0
 	sensors.elevation = 0.45
+	sensors.legend = [
+		{"color": sensors.highlight_color, "label": "Currently tracked"},
+		{"color": sensors.base_color, "label": "Not currently tracked"},
+		{"color": PanelTheme.ACCENT, "label": "Radar coverage"},
+		{"color": PanelTheme.WARN, "label": "Optical telescope"},
+	]
 	out.append(sensors)
 
 	return out
@@ -194,40 +213,42 @@ Optical sites need darkness on the ground and sunlight on the target at once, so
 func add_wind_chapter(layer: WindLayer) -> void:
 	var c := Chapter.new()
 	c.title = "THE JET STREAM"
-	c.subtitle = "250 hPa winds, peak %.0f km/h" % (layer.peak_speed_ms * 3.6)
-	c.explanation = """Streamlines through the real 250 hPa wind field — about 10.5 kilometres up, which is airliner cruise altitude.
+	c.subtitle = "Real wind data, about 10 kilometers up"
+	c.explanation = """These streamlines follow real wind data at around 10.5 kilometers up, roughly the cruising height of an airliner and where the jet streams live.
 
-Colour is wind speed, on a fixed scale so it means the same thing every day: blue below 15 m/s, green near 27, yellow near 39, orange near 52, red at 65 and above. A jet stream is conventionally declared around 30 m/s — the green-to-yellow transition.
+Color shows wind speed on a fixed scale, so it means the same thing no matter when you're looking: blue is calm, moving up through green and orange to red at the fastest winds, above about 65 meters per second (234 kilometers per hour). A jet stream is usually defined as a core faster than about 30 meters per second. Streak length also shows speed, so fast air draws long streaks and slow air draws short ones.
 
-Trail length is speed as well. Each streak is seven hours of travel, so the fastest air draws the longest streaks whatever the colour is doing.
-
-These are not decoration. A jet stream core can exceed 300 km/h, and flying with it or against it is the difference between two very different flight plans — transit time, fuel load, and sometimes whether a route closes altogether.
-
-Note the structure: strong westerlies in a band around each mid-latitude, weak and easterly across the tropics. The southern jets are the stronger ones at this time of year.
-
-The aircraft in the previous chapter are flying through this."""
+This isn't just weather trivia. A strong jet stream core can top 300 kilometers per hour, and flying with it or against it can mean very different flight times and fuel needs. Notice the pattern: strong winds blowing west to east around the middle latitudes, and weaker, often reversed winds near the equator. The aircraft in the previous chapter are flying through this."""
 	c.show_winds = true
 	c.show_satellites = false
 	c.content_scale = 1.6
 	c.elevation = 0.3
+	c.legend = [
+		{"color": Color(0.08, 0.28, 0.85), "label": "Calm"},
+		{"color": Color(0.28, 0.92, 0.48), "label": "~30 m/s, jet stream threshold"},
+		{"color": Color(1.00, 0.55, 0.14), "label": "~52 m/s"},
+		{"color": Color(1.00, 0.18, 0.16), "label": "65+ m/s (234+ km/h)"},
+	]
 	chapters.append(c)
 
 ## Appended after load, because the aircraft snapshot is optional data.
 func add_aircraft_chapter(layer: AircraftLayer) -> void:
 	var c := Chapter.new()
 	c.title = "THE AIR DOMAIN"
-	c.subtitle = "%d aircraft airborne right now" % layer.count
-	c.explanation = """Every gold point is a real aircraft, airborne at this moment, from live ADS-B tracking. The purple tracks behind them are fifteen minutes of flight, dead-reckoned from each aircraft's reported speed and heading — a direction of travel, not a recorded path.
+	c.subtitle = "%d aircraft in the sky right now" % layer.count
+	c.explanation = """Every gold point is a real aircraft, airborne right now, from live flight-tracking data. The purple trails behind them show the last fifteen minutes of travel, estimated from each aircraft's reported speed and heading rather than a recorded path.
 
-This is the domain everyone already has an intuition for. Airliners cruise near 10 kilometres — and at true scale that layer is thinner than the coastlines drawn on this globe. It has been exaggerated heavily just to be visible at all.
+This is a domain most people already have a feel for. Airliners cruise around 10 kilometers up, and at true scale that layer would be thinner than the coastlines drawn on this globe, so it's been stretched dramatically just to be visible at all.
 
-Now consider what that means for everything else on this wall. The lowest tracked satellites are about forty times higher than these aircraft, and the geostationary belt is three thousand times higher.
-
-The air picture is crowded, contested, and very well understood. The space picture is larger by orders of magnitude, and far less of it is watched."""
+Now compare that to everything else on this wall. The lowest tracked satellites orbit about forty times higher than these aircraft, and the geostationary belt, home to many communications and weather satellites, is about three thousand times higher still. Air traffic is crowded, but extremely well tracked. Space is far larger, and far less of it is watched this closely."""
 	c.show_aircraft = true
 	c.show_satellites = false
 	c.content_scale = 1.6
 	c.elevation = 0.35
+	c.legend = [
+		{"color": Color(1.0, 0.82, 0.35), "label": "Aircraft, right now"},
+		{"color": Color(0.72, 0.45, 1.0), "label": "Estimated path, last 15 minutes"},
+	]
 	chapters.append(c)
 
 ## Appended after load rather than built into the deck, because the aurora layer
@@ -236,16 +257,13 @@ func add_space_weather_chapter(weather: SpaceWeatherStore,
 		tec_available: bool = false) -> void:
 	var c := Chapter.new()
 	c.title = "SPACE WEATHER"
-	c.subtitle = "Auroral oval, Kp %.0f (%s) — geomagnetic activity raises drag in low LEO" % [
-		weather.kp_index, weather.storm_label()]
+	c.subtitle = "How the sun disturbs satellites and GPS"
 	c.regimes = ["LEO"]
-	c.explanation = """The green oval is the auroral oval from NOAA's OVATION model, drawn at its real emission altitude. It marks where charged particles from the solar wind are funnelling into the atmosphere.
+	c.explanation = """The green oval marks the aurora, drawn at the altitude where it actually glows, showing where charged particles from the sun are pouring into the upper atmosphere. This comes from a real forecasting model run by the US space weather agency, NOAA, not a live photograph.
 
-Above it, the coloured shell is ionospheric total electron content — the number of electrons in a column, from NOAA's GloTEC model. Brighter means denser.
+The colored shell above it is the ionosphere: a layer of electrically charged particles high in the atmosphere, brighter where there are more of them. This is the layer that affects people on the ground. A GPS signal passing through a denser ionosphere arrives slightly late, so a receiver calculates the wrong distance and reports an inaccurate position, especially near the equator where this layer is thickest and most turbulent.
 
-That second layer is the one with operational teeth. A GNSS signal crossing a dense ionosphere arrives late, so the receiver reports the wrong range. It is not the absolute level that hurts so much as sharp gradients across it, which is why GPS accuracy degrades during solar activity — and why the equatorial band, where TEC is highest and most structured, is the worst place to need precision.
-
-The same disturbance expands the upper atmosphere, raising drag on everything in low orbit. One event, three consequences: lights in the sky, degraded navigation, and orbits that decay faster than predicted."""
+Right now, a scale called the Kp index, which runs from 0 to 9 and measures how disturbed Earth's magnetic field is, reads %.0f (%s). The same solar activity that causes the aurora also puffs up the outer atmosphere, adding drag to satellites in low orbit. One event causes all three effects at once: lights in the sky, worse GPS accuracy, and satellites losing altitude faster than expected.""" % [weather.kp_index, weather.storm_label()]
 	c.content_scale = 1.45
 	c.altitude_exaggeration = 2.0
 	# Looking well down onto the pole, where the oval lives. The night side is
@@ -253,6 +271,12 @@ The same disturbance expands the upper atmosphere, raising drag on everything in
 	# which is itself the point being made.
 	c.elevation = 1.15
 	c.show_tec = tec_available
+	c.show_aurora = true
+	c.legend = [
+		{"color": Color(0.22, 1.0, 0.55), "label": "Aurora (real-time forecast)"},
+		{"color": Color(0.10, 0.55, 0.85), "label": "Ionosphere: fewer electrons"},
+		{"color": Color(1.00, 0.72, 0.62), "label": "Ionosphere: more electrons"},
+	]
 	chapters.append(c)
 
 ## Distance that keeps the outermost visible object PRESET_CLEARANCE beyond the
@@ -291,6 +315,8 @@ func apply(i: int, animate: bool = true) -> void:
 		tec.visible = c.show_tec
 	if winds != null:
 		winds.visible = c.show_winds
+	if aurora != null:
+		aurora.visible = c.show_aurora
 	field.visible = c.show_satellites
 
 	# set_filter and the scale change both move the outermost object, so the
