@@ -54,6 +54,10 @@ uniform float min_pixel_size : hint_range(0.0, 6.0) = 1.6;
 // perspective wants. Energy-exact would be much darker, but this is a marker,
 // not a photometric simulation, and legibility wins.
 uniform float faint_alpha_floor : hint_range(0.0, 1.0) = 0.55;
+// Set by main.gd across the ephemeris loop seam, where every object's
+// position would otherwise pop to its window-start point in one frame. A
+// brief fade through 0 there reads as a cut, not a glitch.
+uniform float wrap_fade : hint_range(0.0, 1.0) = 1.0;
 
 varying flat vec4 v_color;
 
@@ -114,5 +118,5 @@ void fragment() {
 	float a = smoothstep(0.5, 0.06, d);
 	if (a < 0.004) discard;
 	ALBEDO = v_color.rgb * brightness;
-	ALPHA = a * v_color.a;
+	ALPHA = a * v_color.a * wrap_fade;
 }
