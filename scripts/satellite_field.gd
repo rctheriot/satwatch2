@@ -72,6 +72,11 @@ var _radius_dirty: bool = true
 ## frame, recomputing what had just been computed.
 var current_positions: PackedFloat32Array = PackedFloat32Array()
 
+## True for every update_positions() call inside the held last-sample step
+## (see the comment there). main.gd edge-detects this to drive a fade that
+## brackets the freeze instead of leaving it visibly static.
+var last_step_held: bool = false
+
 func setup(p_store: EphemerisStore, p_catalog: Array) -> void:
 	store = p_store
 	catalog = p_catalog
@@ -201,6 +206,14 @@ func update_positions(unix_seconds: float) -> void:
 	var i0 := int(cursor)
 	var i1 := (i0 + 1) % store.n_samples
 	var t := cursor - float(i0)
+	# The last sample wraps to the first, which are unrelated points in each
+	# object's orbit -- interpolating across that seam draws every object
+	# sliding in a straight line to its window-start position over one 30s
+	# step. Hold at the last sample instead; main.gd fades the field through
+	# wrap_fade across the same step so the hold reads as a cut, not a freeze.
+	last_step_held = i1 < i0
+	if last_step_held:
+		t = 0.0
 	var base_a := i0 * n * 3
 	var base_b := i1 * n * 3
 	var pos := store.positions

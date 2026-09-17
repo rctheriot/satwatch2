@@ -33,6 +33,13 @@ const ISS_MODEL_SCALE := 0.03
 ## not an independent speed. Purely a decorative constant, tuned by eye.
 const CLOUD_DRIFT_FRACTION := 0.05
 
+## Real-world seconds to fade the satellite field to black and back across
+## the ephemeris loop seam. Independent of sim rate by construction: alpha
+## chases 0 while SatelliteField.last_step_held is true and 1 once it isn't,
+## so a long hold (slow playback) just means more time spent fully black,
+## and the fade-in only starts once positions are already correct again.
+const WRAP_FADE_HALF_SECONDS := 0.3
+
 @onready var clock: SimClock = $SimClock
 @onready var rig: ContentRig = $EarthRig
 @onready var earth: MeshInstance3D = $EarthRig/EarthMesh
@@ -76,6 +83,8 @@ var _clouds_material: ShaderMaterial
 var _tec_material: ShaderMaterial
 var _wind_material: ShaderMaterial
 var _ready_ok := false
+
+var _wrap_fade_alpha := 1.0
 
 func _ready() -> void:
 	InputActions.register()
@@ -359,13 +368,17 @@ func _attach_to_head() -> void:
 	hud.transform = Transform3D.IDENTITY
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if not _ready_ok:
 		return
 	_attach_to_head()
 	var t := clock.now_unix
 
 	field.update_positions(t)
+	var wrap_target := 0.0 if field.last_step_held else 1.0
+	_wrap_fade_alpha = move_toward(_wrap_fade_alpha, wrap_target,
+		delta / WRAP_FADE_HALF_SECONDS)
+	_sat_material.set_shader_parameter("wrap_fade", _wrap_fade_alpha)
 	# The Earth spins under the satellites rather than the other way round --
 	# the field stays in TEME, which is what SGP4 actually produces.
 	var gmst := clock.gmst()
