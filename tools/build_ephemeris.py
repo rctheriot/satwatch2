@@ -311,7 +311,21 @@ def main():
     MIN_PERIGEE_KM = 150.0
     above_reentry = np.array([m["perigee_km"] >= MIN_PERIGEE_KM for m in meta])
 
-    ok = good & near & consistent & above_reentry
+    # Position jump between two CONSECUTIVE 30 s samples. A real orbit's
+    # radius range already bounds its own speed, but that is not enough on
+    # its own: two objects (Flock 4V-10, TTU100) had a radius range that
+    # looked like a perfectly plausible LEO orbit (1.10-1.16 Re) and still
+    # passed `consistent`, but jumped ~0.29 Re in a single step -- about 8x
+    # what real motion at that altitude covers in 30 s, a SGP4 numerical
+    # artifact rather than an orbit. Every genuinely smooth object in this
+    # catalog tops out under 0.04 Re per step (LEO perigee passages are the
+    # fastest real motion there is); 0.15 is a wide margin above that and a
+    # narrow one below the two known bad cases.
+    MAX_STEP_RE = 0.15
+    step = np.linalg.norm(np.diff(r, axis=1), axis=2) / RE_KM  # (n_sats, n_samples-1)
+    smooth = step.max(axis=1) <= MAX_STEP_RE
+
+    ok = good & near & consistent & above_reentry & smooth
     r, meta = r[ok], [m for m, keep in zip(meta, ok) if keep]
     sats = [s for s, keep in zip(sats, ok) if keep]
     n_obj = len(meta)
@@ -321,6 +335,8 @@ def main():
           f"contradicts their own mean elements")
     print(f"  dropped {int((good & near & consistent & ~above_reentry).sum())} "
           f"with perigee below {MIN_PERIGEE_KM:.0f} km (reentering, elements unreliable)")
+    print(f"  dropped {int((good & near & consistent & above_reentry & ~smooth).sum())} "
+          f"with a single-step jump above {MAX_STEP_RE:.2f} Re (SGP4 artifact, not an orbit)")
     print(f"  keeping {n_obj}")
 
     # Max radius each object actually ATTAINS inside the propagated window.
