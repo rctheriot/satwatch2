@@ -301,7 +301,17 @@ def main():
     apo_re = np.array([1.0 + m["apogee_km"] / RE_KM for m in meta])
     consistent = rad.max(axis=1) <= apo_re * 1.15 + 0.05
 
-    ok = good & near & consistent
+    # Perigee this low means atmospheric drag dominates, not the two-body
+    # motion SGP4 models -- the object is hours from reentry, and its mean
+    # elements are no longer a reliable prediction of anything, including
+    # its own speed. One of these (Starlink-30061, 40.8 x 106.6 km) visibly
+    # outran the rest of the LEO shell: correct elements, real object, just
+    # not "in orbit" in the sense this display means it, and not something
+    # SGP4 propagates trustworthily this close to the ground.
+    MIN_PERIGEE_KM = 150.0
+    above_reentry = np.array([m["perigee_km"] >= MIN_PERIGEE_KM for m in meta])
+
+    ok = good & near & consistent & above_reentry
     r, meta = r[ok], [m for m, keep in zip(meta, ok) if keep]
     sats = [s for s, keep in zip(sats, ok) if keep]
     n_obj = len(meta)
@@ -309,6 +319,8 @@ def main():
     print(f"  dropped {int((good & ~near).sum())} beyond {MAX_RADIUS} Re (off-scene)")
     print(f"  dropped {int((good & near & ~consistent).sum())} whose propagation "
           f"contradicts their own mean elements")
+    print(f"  dropped {int((good & near & consistent & ~above_reentry).sum())} "
+          f"with perigee below {MIN_PERIGEE_KM:.0f} km (reentering, elements unreliable)")
     print(f"  keeping {n_obj}")
 
     # Max radius each object actually ATTAINS inside the propagated window.
