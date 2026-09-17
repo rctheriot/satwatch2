@@ -106,7 +106,16 @@ func set_filter(regimes: Array) -> void:
 	for i in catalog.size():
 		if regimes.is_empty() or catalog[i].get("regime", "") in regimes:
 			out.append(i)
-	active = out
+	_set_active(out)
+
+## Show exactly this set of catalog indices, bypassing the regime bucket --
+## for a chapter isolating a named subset (e.g. only GPS) rather than a
+## whole regime. CatalogStore.indices_matching_name() is the usual source.
+func set_filter_indices(indices: PackedInt32Array) -> void:
+	_set_active(indices)
+
+func _set_active(indices: PackedInt32Array) -> void:
+	active = indices
 	_radius_dirty = true
 	# Filtered objects are packed to the front and the tail is hidden, because
 	# MultiMesh can only draw a contiguous prefix of its instances.

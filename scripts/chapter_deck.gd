@@ -166,6 +166,21 @@ Almost all of the tracked objects are packed into that inner ball. Almost all of
 	out.append(full)
 
 	# --- Specific cases -------------------------------------------------------
+	var gps := Chapter.new()
+	gps.title = "THE GPS CONSTELLATION"
+	gps.subtitle = "30 satellites, arranged by design, not chance"
+	gps.explanation = """This shows only the GPS satellites, isolated from every other satellite sharing medium orbit with them, including the navigation systems other countries fly. Orbit paths are on for this chapter, tracing all 30 real orbital planes at once.
+
+The pattern is not random. GPS satellites fly in six evenly spaced orbital planes, each tilted about 55 degrees from the equator, with several satellites spaced around every plane. That arrangement is deliberate: from almost anywhere on Earth, at almost any time, at least four GPS satellites sit above the horizon, which is the minimum a receiver needs to calculate a position.
+
+The result is a striking, symmetric lattice that covers the whole globe evenly. It's not decoration. The shape exists because global, round-the-clock coverage was the requirement."""
+	gps.filter_name = "GPS"
+	gps.content_scale = 0.40
+	gps.altitude_exaggeration = 1.0
+	gps.elevation = 0.55
+	gps.force_orbit_trails = true
+	out.append(gps)
+
 	var starlink := Chapter.new()
 	starlink.title = "STARLINK'S CONSTELLATION"
 	starlink.subtitle = "One company's satellites against everything else in low orbit"
@@ -337,7 +352,10 @@ func apply(i: int, animate: bool = true) -> void:
 	rig.content_scale = c.content_scale
 	field.altitude_exaggeration = c.altitude_exaggeration
 	field.point_size = c.point_size
-	field.set_filter(c.regimes)
+	if not c.filter_name.is_empty():
+		field.set_filter_indices(catalog.indices_matching_name(c.filter_name))
+	else:
+		field.set_filter(c.regimes)
 
 	if not c.highlight_intl_prefix.is_empty():
 		highlighted_indices = catalog.indices_with_intl_prefix(c.highlight_intl_prefix)

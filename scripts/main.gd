@@ -61,6 +61,11 @@ var orbit_path_store := OrbitPathStore.new()
 ## why this is not a per-chapter Chapter field.
 var _orbit_trails_on := false
 var _current_chapter: Chapter = null
+## See _apply_forced_orbit_trails(). _orbit_trails_forced is true while the
+## CURRENT chapter is the one that borrowed the toggle, so leaving it (to
+## any chapter without force_orbit_trails) is what triggers the restore.
+var _orbit_trails_saved_state := false
+var _orbit_trails_forced := false
 
 var _earth_material: ShaderMaterial
 var _atmo_material: ShaderMaterial
@@ -282,7 +287,22 @@ func _load_tec() -> void:
 func _on_chapter_changed(c: Chapter, idx: int, total: int) -> void:
 	hud.set_chapter(c, idx, total)
 	_current_chapter = c
+	_apply_forced_orbit_trails(c)
 	_refresh_orbit_trails()
+
+## A chapter with force_orbit_trails (GPS) borrows the global toggle rather
+## than owning its own copy of it: entering saves whatever the viewer had it
+## set to and forces it on, leaving restores exactly that. If the viewer had
+## already turned trails on before arriving, this is a no-op both ways --
+## "restore" means back to what they had, not necessarily off.
+func _apply_forced_orbit_trails(c: Chapter) -> void:
+	if c.force_orbit_trails and not _orbit_trails_forced:
+		_orbit_trails_saved_state = _orbit_trails_on
+		_orbit_trails_on = true
+		_orbit_trails_forced = true
+	elif not c.force_orbit_trails and _orbit_trails_forced:
+		_orbit_trails_on = _orbit_trails_saved_state
+		_orbit_trails_forced = false
 
 ## Rebuilds the drawn trail set. A chapter that highlights a specific subset
 ## (a debris cloud, one constellation) trails THAT subset rather than its

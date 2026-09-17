@@ -19,6 +19,12 @@ extends Resource
 @export_group("Content")
 ## Empty means every regime.
 @export var regimes: Array[String] = []
+## When set, shows ONLY objects whose name contains this substring -- the
+## whole population, not a subset dimmed within a regime. For isolating a
+## named group (GPS) that regimes/highlight_name can't express, since MEO is
+## GPS, GLONASS, Galileo and BeiDou all together. Takes priority over
+## `regimes` when non-empty; see ChapterDeck.apply().
+@export var filter_name: String = ""
 ## Objects whose name contains this are highlighted, everything else dimmed.
 @export var highlight_name: String = ""
 ## Objects whose international designator starts with this are highlighted --
@@ -68,6 +74,13 @@ extends Resource
 ## Show the free-standing ISS model in place of the globe. Its own chapter
 ## only.
 @export var show_iss: bool = false
+## Force the orbit-trail toggle on for this chapter regardless of its current
+## state, and restore whatever it was on the way out. See main.gd's
+## _on_chapter_changed() -- the toggle itself stays a global, viewer-owned
+## control (T / gamepad B); this only borrows it temporarily for a chapter
+## where the paths ARE the point, without permanently changing what the
+## viewer had it set to.
+@export var force_orbit_trails: bool = false
 
 @export_group("Time")
 ## Chapters deliberately do NOT set the clock rate. Having each one impose its
